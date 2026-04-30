@@ -14,7 +14,9 @@ class Poller extends EventEmitter {
   private lastDeviceKey: string | null | undefined = undefined;
 
   start(): void {
-    void this.tick();
+    void this.tick().then(() => {
+      if (this.display.kind === 'off') setScreen('off');
+    });
     setInterval(() => void this.tick(), 2000);
   }
 
