@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { execa } from 'execa';
 import { config } from './config';
 
 let lastState: 'on' | 'off' | null = null;
@@ -7,19 +7,13 @@ export function setScreen(state: 'on' | 'off'): void {
   if (state === lastState) return;
   lastState = state;
 
-  if (config.fakeScreen) {
-    console.log(`[screen] ${state}`);
-    return;
-  }
+  if (config.fakeScreen) { console.log(`[screen] ${state}`); return; }
 
-  const args = ['--output', 'HDMI-A-1', state === 'on' ? '--on' : '--off'];
+  const { waylandDisplay, xdgRuntimeDir } = config;
+  console.log(`[screen] -> ${state} (WAYLAND_DISPLAY=${waylandDisplay}, XDG_RUNTIME_DIR=${xdgRuntimeDir})`);
 
-  const env = {
-    ...process.env,
-    WAYLAND_DISPLAY: process.env.WAYLAND_DISPLAY ?? 'wayland-1',
-    XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR ?? `/run/user/1000`,
-  };
-
-  const child = spawn('wlr-randr', args, { env, stdio: ['ignore', 'ignore', 'pipe'] });
-  child.stderr.on('data', (d: Buffer) => console.error('[screen]', d.toString().trim()));
+  const env = { ...process.env, WAYLAND_DISPLAY: waylandDisplay, XDG_RUNTIME_DIR: xdgRuntimeDir };
+  execa('wlr-randr', ['--output', 'HDMI-A-1', state === 'on' ? '--on' : '--off'], { env })
+    .then(() => console.log(`[screen] ${state} ok`))
+    .catch((err: Error) => console.error(`[screen] ${state} failed:`, err.message));
 }
