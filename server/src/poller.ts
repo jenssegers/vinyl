@@ -11,7 +11,7 @@ export type Display =
 class Poller extends EventEmitter {
   private display: Display = { kind: 'off' };
   private pauseTimer: NodeJS.Timeout | null = null;
-  private lastDeviceKey: string | null = null;
+  private lastDeviceKey: string | null | undefined = undefined;
 
   start(): void {
     void this.tick();

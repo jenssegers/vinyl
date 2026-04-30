@@ -73,7 +73,7 @@ export async function getCurrentlyPlaying(): Promise<{
   device: Device | null;
 } | null> {
   const token = await getAccessToken();
-  const response = await fetch(`${API}/me/player/currently-playing`, {
+  const response = await fetch(`${API}/me/player`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
