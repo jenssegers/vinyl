@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Wait for Fastify to be up, then open Chromium in kiosk mode.
+while ! curl -fs http://127.0.0.1:3000 >/dev/null; do sleep 0.5; done
+exec chromium \
+  --kiosk \
+  --ozone-platform=wayland \
+  --no-first-run \
+  --noerrdialogs \
+  --disable-translate \
+  --disable-features=TranslateUI \
+  --disable-session-crashed-bubble \
+  --disable-component-update \
+  --check-for-update-interval=31536000 \
+  --autoplay-policy=no-user-gesture-required \
+  --password-store=basic \
+  --user-data-dir="$HOME/.kiosk-chromium" \
+  --window-size=1080,1080 \
+  --window-position=0,0 \
+  http://127.0.0.1:3000
