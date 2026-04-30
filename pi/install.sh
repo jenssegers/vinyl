@@ -15,7 +15,7 @@ fi
 sudo apt-get update
 sudo apt-get install --no-install-recommends -y \
   labwc seatd wlr-randr wlopm \
-  chromium-browser \
+  chromium \
   swayidle wtype \
   fonts-dejavu-core libgl1-mesa-dri xdg-user-dirs \
   nodejs npm \
