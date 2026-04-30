@@ -8,12 +8,19 @@ export interface Track {
   albumArt: string;
 }
 
+export interface Device {
+  id: string | null;
+  name: string;
+  type: string;
+}
+
 const API = 'https://api.spotify.com/v1';
 const ACCOUNTS = 'https://accounts.spotify.com/api/token';
 
 interface RawCurrentlyPlaying {
   is_playing: boolean;
   currently_playing_type: string;
+  device?: { id: string | null; name: string; type: string };
   item: {
     id: string;
     name: string;
@@ -60,7 +67,11 @@ async function getAccessToken(): Promise<string> {
   return tokens.access_token;
 }
 
-export async function getCurrentlyPlaying(): Promise<{ isPlaying: boolean; track: Track } | null> {
+export async function getCurrentlyPlaying(): Promise<{
+  isPlaying: boolean;
+  track: Track;
+  device: Device | null;
+} | null> {
   const token = await getAccessToken();
   const response = await fetch(`${API}/me/player/currently-playing`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -81,5 +92,6 @@ export async function getCurrentlyPlaying(): Promise<{ isPlaying: boolean; track
       artist: data.item.artists.map((artist) => artist.name).join(', '),
       albumArt: data.item.album.images[0]?.url ?? '',
     },
+    device: data.device ?? null,
   };
 }

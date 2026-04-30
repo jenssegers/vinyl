@@ -20,6 +20,7 @@ const envSchema = z
     VINYL_PAUSE_TO_OFF_MS: number(60000),
     VINYL_FAKE_SCREEN: z.string().optional(),
     VINYL_TOKENS_PATH: z.string().optional(),
+    VINYL_ALLOWED_DEVICES: z.string().optional(),
   })
   .transform((env) => ({
     port: env.PORT,
@@ -29,6 +30,11 @@ const envSchema = z
     fakeScreen: env.VINYL_FAKE_SCREEN === '1' || process.platform !== 'linux',
     tokensPath: env.VINYL_TOKENS_PATH || path.join(os.homedir(), '.config', 'vinyl', 'tokens.json'),
     clientDist: path.resolve(__dirname, '../../client/dist'),
+    allowedDevices: env.VINYL_ALLOWED_DEVICES
+      ? env.VINYL_ALLOWED_DEVICES.split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+      : [],
   }));
 
 const result = envSchema.safeParse(process.env);

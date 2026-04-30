@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 import { config } from './config';
 import { setScreen } from './screen';
-import { getCurrentlyPlaying, type Track } from './spotify';
+import { type Device, getCurrentlyPlaying, type Track } from './spotify';
 
 export type Display =
   | { kind: 'playing'; track: Track }
@@ -11,6 +11,7 @@ export type Display =
 class Poller extends EventEmitter {
   private display: Display = { kind: 'off' };
   private pauseTimer: NodeJS.Timeout | null = null;
+  private lastDeviceKey: string | null = null;
 
   start(): void {
     void this.tick();
@@ -21,13 +22,33 @@ class Poller extends EventEmitter {
     return this.display;
   }
 
+  private isAllowed(device: Device | null): boolean {
+    if (config.allowedDevices.length === 0) return true;
+    if (!device) return false;
+    const name = device.name.toLowerCase();
+    const id = device.id?.toLowerCase() ?? '';
+    return config.allowedDevices.some((d) => d === name || d === id);
+  }
+
   private async tick(): Promise<void> {
-    let nowPlaying: { isPlaying: boolean; track: Track } | null;
+    let nowPlaying: Awaited<ReturnType<typeof getCurrentlyPlaying>>;
     try {
       nowPlaying = await getCurrentlyPlaying();
     } catch (err) {
       console.error('[poller]', (err as Error).message);
       return; // hold last state on any error
+    }
+
+    const deviceKey = nowPlaying?.device
+      ? `${nowPlaying.device.name} (${nowPlaying.device.type}, id=${nowPlaying.device.id})`
+      : null;
+    if (deviceKey !== this.lastDeviceKey) {
+      console.log('[poller] active device:', deviceKey ?? '<none>');
+      this.lastDeviceKey = deviceKey;
+    }
+
+    if (nowPlaying && !this.isAllowed(nowPlaying.device)) {
+      nowPlaying = null;
     }
 
     if (nowPlaying?.isPlaying) {
@@ -36,7 +57,7 @@ class Poller extends EventEmitter {
       // 200 response, paused
       this.onPaused(nowPlaying.track);
     } else {
-      // 204: no active session — preserve last track if we have one
+      // 204 or non-allowed device — preserve last track if we have one
       const current = this.display;
       const lastTrack = current.kind !== 'off' ? current.track : null;
       if (lastTrack) {
