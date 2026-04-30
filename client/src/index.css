@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+body {
+  background-color: black;
+}
+
+@keyframes spin-record {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-record {
+  animation: spin-record 4s linear infinite;
+}
+
+.spin-paused {
+  animation: spin-record 4s linear infinite;
+  animation-play-state: paused;
+}
+
+.spin-record,
+.spin-paused {
+  will-change: transform;
+}
