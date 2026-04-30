@@ -1,4 +1,5 @@
 import chroma from 'chroma-js';
+import { useEffect, useState } from 'react';
 import { useAlbumColor } from '../hooks/useAlbumColor';
 
 interface RecordProps {
@@ -7,6 +8,19 @@ interface RecordProps {
 }
 
 export function Record({ albumArt, isPlaying }: RecordProps) {
+  const [loadedArt, setLoadedArt] = useState(albumArt);
+
+  useEffect(() => {
+    if (!albumArt) {
+      setLoadedArt('');
+      return;
+    }
+    const img = new Image();
+    img.onload = () => setLoadedArt(albumArt);
+    img.src = albumArt;
+    return () => { img.onload = null; };
+  }, [albumArt]);
+
   const [r, g, b] = useAlbumColor(albumArt);
   const base = chroma(r, g, b);
   const grooveDark = base.darken(1.5).css();
@@ -26,8 +40,8 @@ export function Record({ albumArt, isPlaying }: RecordProps) {
           className="absolute rounded-full bg-center"
           style={{
             inset: '12%',
-            backgroundImage: albumArt ? `url("${albumArt}")` : undefined,
-            backgroundColor: albumArt ? undefined : '#374151',
+            backgroundImage: loadedArt ? `url("${loadedArt}")` : undefined,
+            backgroundColor: loadedArt ? undefined : '#374151',
             backgroundSize: '104%',
           }}
         />
