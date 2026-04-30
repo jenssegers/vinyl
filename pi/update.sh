@@ -8,4 +8,5 @@ npm install
 npm run build
 sudo systemctl restart vinyl
 pkill chromium || true
-WAYLAND_DISPLAY=wayland-1 XDG_RUNTIME_DIR=/run/user/1000 bash "$(dirname "$0")/launch-browser.sh" &
+WAYLAND_SOCK=$(ls /run/user/1000/wayland-* 2>/dev/null | grep -v '\.lock' | head -1)
+WAYLAND_DISPLAY=$(basename "$WAYLAND_SOCK") XDG_RUNTIME_DIR=/run/user/1000 bash "$(dirname "$0")/launch-browser.sh" &
