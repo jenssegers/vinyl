@@ -13,6 +13,14 @@ exec chromium \
   --check-for-update-interval=31536000 \
   --autoplay-policy=no-user-gesture-required \
   --password-store=basic \
+  --disable-background-networking \
+  --disable-sync \
+  --disable-breakpad \
+  --disable-client-side-phishing-detection \
+  --disable-default-apps \
+  --disable-extensions \
+  --no-pings \
+  --renderer-process-limit=1 \
   --user-data-dir="$HOME/.kiosk-chromium" \
   --disk-cache-dir=/tmp/vinyl-chromium-cache \
   --window-size=1080,1080 \
