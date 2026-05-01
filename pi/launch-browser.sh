@@ -14,6 +14,7 @@ exec chromium \
   --autoplay-policy=no-user-gesture-required \
   --password-store=basic \
   --user-data-dir="$HOME/.kiosk-chromium" \
+  --disk-cache-dir=/tmp/vinyl-chromium-cache \
   --window-size=1080,1080 \
   --window-position=0,0 \
   http://127.0.0.1:3000
