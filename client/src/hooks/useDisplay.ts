@@ -28,10 +28,6 @@ export function useDisplay(): Display {
       }
     };
 
-    es.onerror = () => {
-      // EventSource retries automatically; no action needed
-    };
-
     return () => es.close();
   }, []);
 

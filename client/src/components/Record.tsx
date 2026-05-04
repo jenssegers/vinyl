@@ -1,5 +1,3 @@
-import chroma from 'chroma-js';
-import { useEffect, useState } from 'react';
 import { useAlbumColor } from '../hooks/useAlbumColor';
 
 interface RecordProps {
@@ -8,23 +6,14 @@ interface RecordProps {
 }
 
 export function Record({ albumArt, isPlaying }: RecordProps) {
-  const [loadedArt, setLoadedArt] = useState(albumArt);
+  const {
+    color: [r, g, b],
+    loadedArt,
+  } = useAlbumColor(albumArt);
 
-  useEffect(() => {
-    if (!albumArt) {
-      setLoadedArt('');
-      return;
-    }
-    const img = new Image();
-    img.onload = () => setLoadedArt(albumArt);
-    img.src = albumArt;
-    return () => { img.onload = null; };
-  }, [albumArt]);
-
-  const [r, g, b] = useAlbumColor(albumArt);
-  const base = chroma(r, g, b);
-  const grooveDark = base.darken(1.5).css();
-  const grooveLight = base.brighten(0.5).css();
+  const base = `rgb(${r} ${g} ${b})`;
+  const grooveDark = `color-mix(in oklab, ${base}, black 35%)`;
+  const grooveLight = `color-mix(in oklab, ${base}, white 15%)`;
   const size = 'min(100vw, 100vh)';
 
   return (

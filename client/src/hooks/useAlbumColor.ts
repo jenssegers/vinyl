@@ -1,11 +1,21 @@
 import { getColorSync } from 'colorthief';
 import { useEffect, useState } from 'react';
 
-export function useAlbumColor(albumArt: string) {
-  const [color, setColor] = useState<[number, number, number]>([24, 22, 20]);
+interface AlbumColor {
+  color: [number, number, number];
+  loadedArt: string;
+}
+
+const DEFAULT_COLOR: [number, number, number] = [24, 22, 20];
+
+export function useAlbumColor(albumArt: string): AlbumColor {
+  const [state, setState] = useState<AlbumColor>({ color: DEFAULT_COLOR, loadedArt: '' });
 
   useEffect(() => {
-    if (!albumArt) return;
+    if (!albumArt) {
+      setState({ color: DEFAULT_COLOR, loadedArt: '' });
+      return;
+    }
 
     let cancelled = false;
     const img = new Image();
@@ -13,10 +23,10 @@ export function useAlbumColor(albumArt: string) {
     img.onload = () => {
       if (cancelled) return;
       const extracted = getColorSync(img);
-      if (extracted) {
-        const { r, g, b } = extracted.rgb();
-        setColor([r, g, b]);
-      }
+      const color: [number, number, number] = extracted
+        ? [extracted.rgb().r, extracted.rgb().g, extracted.rgb().b]
+        : DEFAULT_COLOR;
+      setState({ color, loadedArt: albumArt });
     };
     img.src = albumArt;
     return () => {
@@ -24,5 +34,5 @@ export function useAlbumColor(albumArt: string) {
     };
   }, [albumArt]);
 
-  return color;
+  return state;
 }
