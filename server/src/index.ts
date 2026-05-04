@@ -21,9 +21,9 @@ log.info(`server listening on :${config.port}`);
 
 if (loadTokens()) {
   poller.start();
-  log.info('Spotify poller started');
+  log.info('spotify poller started');
 } else {
-  log.warn('No Spotify tokens found — run npm run setup:spotify to connect');
+  log.warn('no spotify tokens found — run npm run setup:spotify to connect');
 }
 
 const shutdown = async () => {

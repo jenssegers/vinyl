@@ -43,7 +43,7 @@ export function setScreen(state: 'on' | 'off'): void {
 
   const { xdgRuntimeDir } = config;
   const waylandDisplay = resolveWaylandDisplay();
-  log.info(`-> ${state} (WAYLAND_DISPLAY=${waylandDisplay}, XDG_RUNTIME_DIR=${xdgRuntimeDir})`);
+  log.info(`turning ${state} (${waylandDisplay})`);
 
   const env = { ...process.env, WAYLAND_DISPLAY: waylandDisplay, XDG_RUNTIME_DIR: xdgRuntimeDir };
   exec('wlr-randr', ['--output', 'HDMI-A-1', state === 'on' ? '--on' : '--off'], { env })

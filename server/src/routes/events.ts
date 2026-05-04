@@ -14,7 +14,11 @@ export async function eventsRoute(app: FastifyInstance): Promise<void> {
     });
 
     const send = (display: Display): void => {
-      log.info(JSON.stringify(display));
+      log.info(
+        display.kind === 'off'
+          ? 'off'
+          : `${display.kind}: "${display.track.name}" — ${display.track.artist}`,
+      );
       reply.raw.write(`data: ${JSON.stringify(display)}\n\n`);
     };
 
