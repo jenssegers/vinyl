@@ -1,3 +1,4 @@
+import { consola } from 'consola';
 import { config } from './config';
 import { loadTokens, saveTokens, type Tokens } from './tokens';
 
@@ -14,8 +15,11 @@ export interface Device {
   type: string;
 }
 
+const log = consola.withTag('spotify');
+
 const API = 'https://api.spotify.com/v1';
 const ACCOUNTS = 'https://accounts.spotify.com/api/token';
+const FETCH_TIMEOUT_MS = 5000;
 
 interface RawCurrentlyPlaying {
   is_playing: boolean;
@@ -30,6 +34,7 @@ interface RawCurrentlyPlaying {
 }
 
 async function refreshTokens(tokens: Tokens): Promise<Tokens> {
+  log.debug('refreshing access token');
   const response = await fetch(ACCOUNTS, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -38,9 +43,10 @@ async function refreshTokens(tokens: Tokens): Promise<Tokens> {
       refresh_token: tokens.refresh_token,
       client_id: config.spotifyClientId,
     }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
-  if (!response.ok) throw new Error(`Token refresh failed: ${response.status}`);
+  if (!response.ok) throw new Error(`token refresh failed: ${response.status}`);
 
   const data = (await response.json()) as {
     access_token: string;
@@ -58,7 +64,7 @@ async function refreshTokens(tokens: Tokens): Promise<Tokens> {
 
 async function getAccessToken(): Promise<string> {
   let tokens = loadTokens();
-  if (!tokens) throw new Error('No Spotify tokens — run npm run setup:spotify');
+  if (!tokens) throw new Error('no spotify tokens — run npm run setup:spotify');
 
   if (Date.now() > tokens.expires_at - 60_000) {
     tokens = await refreshTokens(tokens);
@@ -75,11 +81,12 @@ export async function getCurrentlyPlaying(): Promise<{
   const token = await getAccessToken();
   const response = await fetch(`${API}/me/player`, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (response.status === 204) return null; // nothing active
-  if (response.status === 429) throw new Error('Rate limited');
-  if (!response.ok) throw new Error(`Spotify API error: ${response.status}`);
+  if (response.status === 429) throw new Error('rate limited by spotify');
+  if (!response.ok) throw new Error(`spotify API error: ${response.status}`);
 
   const data = (await response.json()) as RawCurrentlyPlaying;
   if (data.currently_playing_type !== 'track' || !data.item) return null;

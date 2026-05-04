@@ -52,7 +52,7 @@ class Poller extends EventEmitter {
     try {
       nowPlaying = await getCurrentlyPlaying();
     } catch (err) {
-      log.error((err as Error).message);
+      log.error(err as Error);
       return; // hold last state on any error
     }
 

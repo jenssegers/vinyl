@@ -37,7 +37,6 @@ export function setScreen(state: 'on' | 'off'): void {
 
   if (config.fakeScreen) {
     lastState = state;
-    log.info(state);
     return;
   }
 
@@ -51,5 +50,5 @@ export function setScreen(state: 'on' | 'off'): void {
       lastState = state;
       log.success(`${state} ok`);
     })
-    .catch((err: Error) => log.error(`${state} failed: ${err.message}`));
+    .catch((err: Error) => log.error(err, `screen ${state} failed`));
 }
