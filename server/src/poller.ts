@@ -1,4 +1,5 @@
 import EventEmitter from 'node:events';
+import { consola } from 'consola';
 import { config } from './config';
 import { setScreen } from './screen';
 import { type Device, getCurrentlyPlaying, type Track } from './spotify';
@@ -8,16 +9,30 @@ export type Display =
   | { kind: 'paused'; track: Track }
   | { kind: 'off' };
 
+const log = consola.withTag('poller');
+
 class Poller extends EventEmitter {
   private display: Display = { kind: 'off' };
   private pauseTimer: NodeJS.Timeout | null = null;
+  private pollTimer: NodeJS.Timeout | null = null;
   private lastDeviceKey: string | null | undefined = undefined;
 
   start(): void {
     void this.tick().then(() => {
       if (this.display.kind === 'off') setScreen('off');
     });
-    setInterval(() => void this.tick(), 2000);
+    this.pollTimer = setInterval(() => void this.tick(), 2000);
+  }
+
+  stop(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+    if (this.pauseTimer) {
+      clearTimeout(this.pauseTimer);
+      this.pauseTimer = null;
+    }
   }
 
   getState(): Display {
@@ -37,7 +52,7 @@ class Poller extends EventEmitter {
     try {
       nowPlaying = await getCurrentlyPlaying();
     } catch (err) {
-      console.error('[poller]', (err as Error).message);
+      log.error((err as Error).message);
       return; // hold last state on any error
     }
 
@@ -45,7 +60,7 @@ class Poller extends EventEmitter {
       ? `${nowPlaying.device.name} (${nowPlaying.device.type}, id=${nowPlaying.device.id})`
       : null;
     if (deviceKey !== this.lastDeviceKey) {
-      console.log('[poller] active device:', deviceKey ?? '<none>');
+      log.info('active device:', deviceKey ?? '<none>');
       this.lastDeviceKey = deviceKey;
     }
 

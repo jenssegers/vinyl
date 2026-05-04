@@ -1,5 +1,8 @@
+import { consola } from 'consola';
 import type { FastifyInstance } from 'fastify';
 import { type Display, poller } from '../poller';
+
+const log = consola.withTag('sse');
 
 export async function eventsRoute(app: FastifyInstance): Promise<void> {
   app.get('/events', (request, reply) => {
@@ -11,7 +14,7 @@ export async function eventsRoute(app: FastifyInstance): Promise<void> {
     });
 
     const send = (display: Display): void => {
-      console.log('[sse]', JSON.stringify(display));
+      log.info(JSON.stringify(display));
       reply.raw.write(`data: ${JSON.stringify(display)}\n\n`);
     };
 
