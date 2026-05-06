@@ -14,7 +14,7 @@ fi
 #    for a private kiosk; swap in NodeSource setup_22.x if you want newer.
 sudo apt-get update
 sudo apt-get install --no-install-recommends -y \
-  labwc seatd wlr-randr wlopm brightnessctl \
+  labwc seatd wlr-randr wlopm \
   chromium \
   swayidle wtype \
   fonts-dejavu-core libgl1-mesa-dri xdg-user-dirs \
