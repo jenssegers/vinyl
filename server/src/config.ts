@@ -15,6 +15,7 @@ const envSchema = z
     VINYL_FAKE_SCREEN: z.string().optional(),
     VINYL_TOKENS_PATH: z.string().optional(),
     VINYL_ALLOWED_DEVICES: z.string().optional(),
+    VINYL_BRIGHTNESS: z.coerce.number().min(0).max(1).default(1.0),
   })
   .transform((env) => {
     const fakeScreen = env.VINYL_FAKE_SCREEN === '1' || process.platform !== 'linux';
@@ -29,6 +30,7 @@ const envSchema = z
       tokensPath:
         env.VINYL_TOKENS_PATH || path.join(os.homedir(), '.config', 'vinyl', 'tokens.json'),
       clientDist: path.resolve(__dirname, '../../client/dist'),
+      brightness: env.VINYL_BRIGHTNESS,
       allowedDevices: env.VINYL_ALLOWED_DEVICES
         ? env.VINYL_ALLOWED_DEVICES.split(',')
             .map((s) => s.trim().toLowerCase())
