@@ -5,7 +5,7 @@ Vinyl is a Spotify "now playing" display that runs as a kiosk on a Raspberry Pi.
 ## Hardware
 
 - **Pi OS Trixie** (Wayland, labwc compositor)
-- **Display**: Waveshare 7" 1080x1080 round HDMI — `HDMI-A-1` in wlr-randr
+- **Display**: [Waveshare 7" 1080x1080 round HDMI](https://docs.waveshare.com/7inch_1080x1080_LCD) — `HDMI-A-1` in wlr-randr; brightness controlled via `brightnessctl set <value>%` (exposes `/sys/class/backlight/`)
 - **Screen control**: `wlr-randr --output HDMI-A-1 --on/--off`
   - Must set `WAYLAND_DISPLAY=wayland-1` and `XDG_RUNTIME_DIR=/run/user/1000` when invoking from systemd (outside the desktop session)
   - On non-Linux or with `VINYL_FAKE_SCREEN=1`, `screen.ts` logs instead of shelling out
@@ -50,4 +50,3 @@ PKCE flow, one-time setup. Refresh token persisted to `~/.config/vinyl/tokens.js
 | `VINYL_FAKE_SCREEN` | auto | Set `1` to stub wlr-randr |
 | `VINYL_TOKENS_PATH` | `~/.config/vinyl/tokens.json` | Token storage |
 | `VINYL_ALLOWED_DEVICES` | (unset = allow all) | Comma-separated Spotify device names or IDs. Only playback on these devices toggles the screen. |
-| `VINYL_BRIGHTNESS` | `1.0` | Screen brightness 0.0-1.0 (software gamma via wlr-randr `--brightness`). Applied on screen-on. |
