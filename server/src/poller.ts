@@ -117,6 +117,11 @@ class Poller extends EventEmitter {
   }
 
   private enterError(message: string): void {
+    // Don't wake the screen for errors — toggling HDMI on for transient
+    // failures and back off on recovery causes visible cycling. Errors only
+    // surface when the screen is already on (playing/paused).
+    if (this.display.kind === 'off') return;
+
     if (this.display.kind === 'error') {
       if (this.display.message !== message) {
         this.update({ kind: 'error', message });
@@ -128,10 +133,6 @@ class Poller extends EventEmitter {
     if (this.pauseTimer) {
       clearTimeout(this.pauseTimer);
       this.pauseTimer = null;
-    }
-    if (this.display.kind === 'off') {
-      // wake the screen so the error is visible
-      setScreen('on');
     }
     this.update({ kind: 'error', message });
   }

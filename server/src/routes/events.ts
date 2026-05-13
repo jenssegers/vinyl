@@ -4,6 +4,17 @@ import { type Display, poller } from '../poller';
 
 const log = consola.withTag('sse');
 
+function describe(display: Display): string {
+  switch (display.kind) {
+    case 'off':
+      return 'off';
+    case 'error':
+      return `error: ${display.message}`;
+    default:
+      return `${display.kind}: "${display.track.name}" — ${display.track.artist}`;
+  }
+}
+
 export async function eventsRoute(app: FastifyInstance): Promise<void> {
   app.get('/events', (request, reply) => {
     reply.raw.writeHead(200, {
@@ -14,11 +25,7 @@ export async function eventsRoute(app: FastifyInstance): Promise<void> {
     });
 
     const send = (display: Display): void => {
-      log.info(
-        display.kind === 'off'
-          ? 'off'
-          : `${display.kind}: "${display.track.name}" — ${display.track.artist}`,
-      );
+      log.info(describe(display));
       reply.raw.write(`data: ${JSON.stringify(display)}\n\n`);
     };
 

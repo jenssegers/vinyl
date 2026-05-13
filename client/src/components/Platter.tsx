@@ -2,14 +2,14 @@ interface PlatterProps {
   message: string;
 }
 
-const SPOKE_COUNT = 36;
+const SPOKE_COUNT = 38;
 const SPINDLE_R = 3;
-const DASH_INNER_R = 11;
-const DASH_OUTER_R = 30;
-const SOLID_INNER_R = 33;
+const DASH_INNER_R = 9;
+const DASH_OUTER_R = 24;
+const SOLID_INNER_R = 26;
 const SOLID_OUTER_R = 46;
 const PLATTER_BORDER_R = 47.5;
-const TICKS_PER_SPOKE = 12;
+const TICKS_PER_SPOKE = 14;
 
 const TEXT_RADIUS = 38;
 const TEXT_ARC_DEGREES = 150;
@@ -61,12 +61,12 @@ export function Platter({ message }: PlatterProps) {
             {TICK_RS.map(({ r, key: tickKey }) => (
               <line
                 key={tickKey}
-                x1="49.3"
+                x1="49.25"
                 y1={50 - r}
-                x2="50.7"
+                x2="50.75"
                 y2={50 - r}
-                stroke="rgba(0,0,0,0.9)"
-                strokeWidth="0.45"
+                stroke="rgba(0,0,0,0.92)"
+                strokeWidth="0.3"
               />
             ))}
             <line
@@ -74,8 +74,8 @@ export function Platter({ message }: PlatterProps) {
               y1={50 - SOLID_OUTER_R}
               x2="50"
               y2={50 - SOLID_INNER_R}
-              stroke="rgba(0,0,0,0.9)"
-              strokeWidth="0.6"
+              stroke="rgba(0,0,0,0.92)"
+              strokeWidth="0.75"
             />
           </g>
         ))}
@@ -91,7 +91,16 @@ export function Platter({ message }: PlatterProps) {
 
         <circle cx="50" cy="50" r={SPINDLE_R} fill="#0a0a0a" />
 
-        <text fontSize="5" fill="white" textAnchor="middle" style={{ letterSpacing: '0.05em' }}>
+        <text
+          fontSize="3.2"
+          fill="rgba(255,255,255,0.55)"
+          textAnchor="middle"
+          style={{
+            fontFamily: "'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif",
+            fontWeight: 300,
+            letterSpacing: '0.2em',
+          }}
+        >
           <textPath href="#platter-text-arc" startOffset="50%">
             {message}
           </textPath>
