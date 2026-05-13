@@ -11,6 +11,7 @@ const envSchema = z
     PORT: z.coerce.number().default(3000),
     SPOTIFY_CLIENT_ID: z.string().min(1, 'SPOTIFY_CLIENT_ID is required'),
     SPOTIFY_SETUP_PORT: z.coerce.number().default(3001),
+    VINYL_PAUSE_TO_OFF_MS: z.coerce.number().default(10_000),
     VINYL_FAKE_SCREEN: z.string().optional(),
     VINYL_TOKENS_PATH: z.string().optional(),
     VINYL_ALLOWED_DEVICES: z.string().optional(),
@@ -22,6 +23,7 @@ const envSchema = z
       port: env.PORT,
       spotifyClientId: env.SPOTIFY_CLIENT_ID,
       setupPort: env.SPOTIFY_SETUP_PORT,
+      pauseToOffMs: env.VINYL_PAUSE_TO_OFF_MS,
       fakeScreen,
       xdgRuntimeDir,
       tokensPath:

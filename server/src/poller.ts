@@ -20,6 +20,7 @@ class Poller extends EventEmitter {
   private display: Display = { kind: 'off' };
   private consecutiveFailures = 0;
   private pollTimer: NodeJS.Timeout | null = null;
+  private pauseTimer: NodeJS.Timeout | null = null;
   private lastDeviceKey: string | null | undefined = undefined;
 
   start(): void {
@@ -32,6 +33,14 @@ class Poller extends EventEmitter {
     if (this.pollTimer) {
       clearTimeout(this.pollTimer);
       this.pollTimer = null;
+    }
+    this.clearPauseTimer();
+  }
+
+  private clearPauseTimer(): void {
+    if (this.pauseTimer) {
+      clearTimeout(this.pauseTimer);
+      this.pauseTimer = null;
     }
   }
 
@@ -59,7 +68,6 @@ class Poller extends EventEmitter {
       this.handleFailure(err);
       return;
     }
-
     this.consecutiveFailures = 0;
 
     const deviceKey = nowPlaying?.device
@@ -111,6 +119,7 @@ class Poller extends EventEmitter {
     }
 
     log.warn(`surfacing error to display: ${message}`);
+    this.clearPauseTimer();
     if (this.display.kind === 'off') {
       setScreen('on');
     }
@@ -118,6 +127,7 @@ class Poller extends EventEmitter {
   }
 
   private onPlaying(track: Track): void {
+    this.clearPauseTimer();
     const display = this.display;
     if (display.kind === 'playing' && display.track.id === track.id) return;
 
@@ -127,13 +137,20 @@ class Poller extends EventEmitter {
 
   private onPaused(track: Track): void {
     const display = this.display;
+    // From 'off', ignore — don't wake the screen just because a paused track
+    // is sitting in Spotify's player. We'd just blank again after the timer.
+    if (display.kind === 'off') return;
     if (display.kind === 'paused' && display.track.id === track.id) return;
 
     setScreen('on');
     this.update({ kind: 'paused', track });
+    if (!this.pauseTimer) {
+      this.pauseTimer = setTimeout(() => this.onOff(), config.pauseToOffMs);
+    }
   }
 
   private onOff(): void {
+    this.clearPauseTimer();
     if (this.display.kind === 'off') return;
     setScreen('off');
     this.update({ kind: 'off' });

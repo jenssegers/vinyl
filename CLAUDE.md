@@ -27,8 +27,8 @@ State flows one way: Fastify polls Spotify every 2s → pushes `Display` state o
 Four states that mirror the Spotify response directly:
 
 - `playing`: screen on, record spins
-- `paused`: screen on, record frozen with the current track still shown
-- `off`: screen blanked via wlr-randr (Spotify 204 or non-allowed device)
+- `paused`: screen on, record frozen with the current track. Transitions to `off` after `VINYL_PAUSE_TO_OFF_MS` (default 10s)
+- `off`: screen blanked via wlr-randr (Spotify 204, non-allowed device, or pause timeout)
 - `error`: screen on, empty Beogram-style platter with the error message (3+ consecutive Spotify failures). Polling backs off exponentially up to 60s while in this state.
 
 ## Spotify auth
@@ -43,7 +43,7 @@ PKCE flow, one-time setup. Refresh token persisted to `~/.config/vinyl/tokens.js
 | `PORT` | `3000` | Server port |
 | `SPOTIFY_SETUP_PORT` | `3001` | Port for the one-time OAuth callback server (must not equal `PORT`) |
 | `SPOTIFY_REDIRECT_URI` | `http://127.0.0.1:3001/auth/callback` | Must match Spotify app dashboard |
-| `VINYL_PAUSE_TO_OFF_MS` | `60000` | Pause-to-screen-off delay |
+| `VINYL_PAUSE_TO_OFF_MS` | `10000` | Pause-to-screen-off delay (ms) |
 | `VINYL_FAKE_SCREEN` | auto | Set `1` to stub wlr-randr |
 | `VINYL_TOKENS_PATH` | `~/.config/vinyl/tokens.json` | Token storage |
 | `VINYL_ALLOWED_DEVICES` | (unset = allow all) | Comma-separated Spotify device names or IDs. Only playback on these devices toggles the screen. |
