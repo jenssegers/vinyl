@@ -97,7 +97,7 @@ export function Platter({ message }: PlatterProps) {
           textAnchor="middle"
           style={{
             fontFamily: "'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif",
-            fontWeight: 300,
+            fontWeight: 500,
             letterSpacing: '0.2em',
           }}
         >
