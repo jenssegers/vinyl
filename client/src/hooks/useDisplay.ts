@@ -10,7 +10,8 @@ interface Track {
 export type Display =
   | { kind: 'playing'; track: Track }
   | { kind: 'paused'; track: Track }
-  | { kind: 'off' };
+  | { kind: 'off' }
+  | { kind: 'error'; message: string };
 
 const INITIAL: Display = { kind: 'off' };
 
@@ -24,8 +25,12 @@ export function useDisplay(): Display {
       try {
         setDisplay(JSON.parse(e.data) as Display);
       } catch {
-        // malformed message — ignore
+        setDisplay({ kind: 'error', message: 'Invalid server message' });
       }
+    };
+
+    es.onerror = () => {
+      setDisplay({ kind: 'error', message: 'Server unreachable' });
     };
 
     return () => es.close();

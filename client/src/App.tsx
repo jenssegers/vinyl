@@ -1,3 +1,4 @@
+import { Platter } from './components/Platter';
 import { Record } from './components/Record';
 import { useDisplay } from './hooks/useDisplay';
 
@@ -8,7 +9,11 @@ export default function App() {
 
   return (
     <div className="flex items-center justify-center w-screen h-screen">
-      <Record albumArt={display.track.albumArt} isPlaying={display.kind === 'playing'} />
+      {display.kind === 'error' ? (
+        <Platter message={display.message} />
+      ) : (
+        <Record albumArt={display.track.albumArt} isPlaying={display.kind === 'playing'} />
+      )}
     </div>
   );
 }
