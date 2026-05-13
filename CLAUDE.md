@@ -24,15 +24,12 @@ State flows one way: Fastify polls Spotify every 2s → pushes `Display` state o
 
 ## Display state machine
 
-```
-playing → paused → [VINYL_PAUSE_TO_OFF_MS, default 60s] → off
-```
+Four states that mirror the Spotify response directly:
 
 - `playing`: screen on, record spins
-- `paused`: screen stays on, record stops, pause timer starts
-- `off`: screen blanked via wlr-randr
-- Resuming from `paused` cancels the timer (no screen toggle)
-- Resuming from `off` turns the screen back on
+- `paused`: screen on, record frozen with the current track still shown
+- `off`: screen blanked via wlr-randr (Spotify 204 or non-allowed device)
+- `error`: screen on, empty Beogram-style platter with the error message (3+ consecutive Spotify failures). Polling backs off exponentially up to 60s while in this state.
 
 ## Spotify auth
 

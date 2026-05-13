@@ -19,7 +19,6 @@ const log = consola.withTag('poller');
 class Poller extends EventEmitter {
   private display: Display = { kind: 'off' };
   private consecutiveFailures = 0;
-  private pauseTimer: NodeJS.Timeout | null = null;
   private pollTimer: NodeJS.Timeout | null = null;
   private lastDeviceKey: string | null | undefined = undefined;
 
@@ -33,10 +32,6 @@ class Poller extends EventEmitter {
     if (this.pollTimer) {
       clearTimeout(this.pollTimer);
       this.pollTimer = null;
-    }
-    if (this.pauseTimer) {
-      clearTimeout(this.pauseTimer);
-      this.pauseTimer = null;
     }
   }
 
@@ -79,21 +74,12 @@ class Poller extends EventEmitter {
       nowPlaying = null;
     }
 
-    if (this.display.kind === 'error') {
-      this.recoverFromError(nowPlaying);
-    } else if (nowPlaying?.isPlaying) {
+    if (nowPlaying?.isPlaying) {
       this.onPlaying(nowPlaying.track);
     } else if (nowPlaying) {
       this.onPaused(nowPlaying.track);
     } else {
-      // 204 or non-allowed device — preserve last track if we have one
-      const lastTrack =
-        this.display.kind === 'playing' || this.display.kind === 'paused'
-          ? this.display.track
-          : null;
-      if (lastTrack) {
-        this.onPaused(lastTrack);
-      }
+      this.onOff();
     }
 
     this.scheduleNextTick(POLL_BASE_MS);
@@ -117,11 +103,6 @@ class Poller extends EventEmitter {
   }
 
   private enterError(message: string): void {
-    // Don't wake the screen for errors — toggling HDMI on for transient
-    // failures and back off on recovery causes visible cycling. Errors only
-    // surface when the screen is already on (playing/paused).
-    if (this.display.kind === 'off') return;
-
     if (this.display.kind === 'error') {
       if (this.display.message !== message) {
         this.update({ kind: 'error', message });
@@ -130,33 +111,13 @@ class Poller extends EventEmitter {
     }
 
     log.warn(`surfacing error to display: ${message}`);
-    if (this.pauseTimer) {
-      clearTimeout(this.pauseTimer);
-      this.pauseTimer = null;
+    if (this.display.kind === 'off') {
+      setScreen('on');
     }
     this.update({ kind: 'error', message });
   }
 
-  private recoverFromError(nowPlaying: Awaited<ReturnType<typeof getCurrentlyPlaying>>): void {
-    log.info('recovered from error');
-    if (nowPlaying?.isPlaying) {
-      // screen is already on from the error state
-      this.update({ kind: 'playing', track: nowPlaying.track });
-    } else if (nowPlaying) {
-      this.update({ kind: 'paused', track: nowPlaying.track });
-      this.pauseTimer = setTimeout(() => this.onOff(), config.pauseToOffMs);
-    } else {
-      setScreen('off');
-      this.update({ kind: 'off' });
-    }
-  }
-
   private onPlaying(track: Track): void {
-    if (this.pauseTimer) {
-      clearTimeout(this.pauseTimer);
-      this.pauseTimer = null;
-    }
-
     const display = this.display;
     if (display.kind === 'playing' && display.track.id === track.id) return;
 
@@ -166,19 +127,14 @@ class Poller extends EventEmitter {
 
   private onPaused(track: Track): void {
     const display = this.display;
-    if (display.kind === 'playing') {
-      // just transitioned playing → paused
-      this.update({ kind: 'paused', track });
-      this.pauseTimer = setTimeout(() => this.onOff(), config.pauseToOffMs);
-    } else if (display.kind === 'paused' && display.track.id !== track.id) {
-      // track changed while paused (e.g. user skipped on another device)
-      this.update({ kind: 'paused', track });
-    }
-    // if 'off': ignore — screen stays off until someone hits play
+    if (display.kind === 'paused' && display.track.id === track.id) return;
+
+    setScreen('on');
+    this.update({ kind: 'paused', track });
   }
 
   private onOff(): void {
-    this.pauseTimer = null;
+    if (this.display.kind === 'off') return;
     setScreen('off');
     this.update({ kind: 'off' });
   }

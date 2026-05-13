@@ -2,16 +2,17 @@ interface PlatterProps {
   message: string;
 }
 
-const SPOKE_COUNT = 38;
+const SPOKE_COUNT = 24;
 const SPINDLE_R = 3;
 const DASH_INNER_R = 9;
-const DASH_OUTER_R = 24;
-const SOLID_INNER_R = 26;
+const DASH_OUTER_R = 21;
+const SOLID_INNER_R = 29;
 const SOLID_OUTER_R = 46;
 const PLATTER_BORDER_R = 47.5;
-const TICKS_PER_SPOKE = 14;
+const TICKS_PER_SPOKE = 12;
+const TICK_ANGULAR_WIDTH = 0.12; // radians — tangential width per unit radius
 
-const TEXT_RADIUS = 38;
+const TEXT_RADIUS = 25;
 const TEXT_ARC_DEGREES = 150;
 
 const SPOKES = Array.from({ length: SPOKE_COUNT }, (_, i) => {
@@ -58,24 +59,27 @@ export function Platter({ message }: PlatterProps) {
 
         {SPOKES.map(({ angle, key }) => (
           <g key={key} transform={`rotate(${angle} 50 50)`}>
-            {TICK_RS.map(({ r, key: tickKey }) => (
-              <line
-                key={tickKey}
-                x1="49.25"
-                y1={50 - r}
-                x2="50.75"
-                y2={50 - r}
-                stroke="rgba(0,0,0,0.92)"
-                strokeWidth="0.3"
-              />
-            ))}
+            {TICK_RS.map(({ r, key: tickKey }) => {
+              const halfWidth = (r * TICK_ANGULAR_WIDTH) / 2;
+              return (
+                <line
+                  key={tickKey}
+                  x1={50 - halfWidth}
+                  y1={50 - r}
+                  x2={50 + halfWidth}
+                  y2={50 - r}
+                  stroke="rgba(0,0,0,0.92)"
+                  strokeWidth="0.55"
+                />
+              );
+            })}
             <line
               x1="50"
               y1={50 - SOLID_OUTER_R}
               x2="50"
               y2={50 - SOLID_INNER_R}
               stroke="rgba(0,0,0,0.92)"
-              strokeWidth="0.75"
+              strokeWidth="1.4"
             />
           </g>
         ))}
@@ -93,8 +97,9 @@ export function Platter({ message }: PlatterProps) {
 
         <text
           fontSize="3.2"
-          fill="rgba(255,255,255,0.55)"
+          fill="black"
           textAnchor="middle"
+          dominantBaseline="middle"
           style={{
             fontFamily: "'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif",
             fontWeight: 500,

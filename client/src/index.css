@@ -14,14 +14,11 @@ body {
 
 .spin-record {
   animation: spin-record 4s linear infinite;
+  will-change: transform;
 }
 
 .spin-paused {
   animation: spin-record 4s linear infinite;
   animation-play-state: paused;
-}
-
-.spin-record,
-.spin-paused {
   will-change: transform;
 }
