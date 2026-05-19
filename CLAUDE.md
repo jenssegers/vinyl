@@ -46,4 +46,4 @@ PKCE flow, one-time setup. Refresh token persisted to `~/.config/vinyl/tokens.js
 | `VINYL_PAUSE_TO_OFF_MS` | `10000` | Pause-to-screen-off delay (ms) |
 | `VINYL_FAKE_SCREEN` | auto | Set `1` to stub wlr-randr |
 | `VINYL_TOKENS_PATH` | `~/.config/vinyl/tokens.json` | Token storage |
-| `VINYL_ALLOWED_DEVICES` | (unset = allow all) | Comma-separated Spotify device names or IDs. Only playback on these devices toggles the screen. |
+| `VINYL_ALLOWED_DEVICES` | (unset = allow all) | Comma-separated case-insensitive substrings matched against Spotify device names or IDs. e.g. `arc` matches `Arc + 1`. |

@@ -57,7 +57,7 @@ class Poller extends EventEmitter {
     if (!device) return false;
     const name = device.name.toLowerCase();
     const id = device.id?.toLowerCase() ?? '';
-    return config.allowedDevices.some((d) => d === name || d === id);
+    return config.allowedDevices.some((d) => name.includes(d) || (id !== '' && id.includes(d)));
   }
 
   private async tick(): Promise<void> {
