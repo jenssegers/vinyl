@@ -21,7 +21,7 @@ exec chromium \
   --disable-extensions \
   --no-pings \
   --renderer-process-limit=1 \
-  --user-data-dir="$HOME/.kiosk-chromium" \
+  --user-data-dir=/tmp/vinyl-chromium-profile \
   --disk-cache-dir=/tmp/vinyl-chromium-cache \
   --window-size=1080,1080 \
   --window-position=0,0 \
