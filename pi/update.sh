@@ -3,6 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Discard any package-lock.json drift a prior `npm install` left behind, so the pull stays fast-forwardable.
+git restore package-lock.json
 git pull --ff-only
 npm install
 npm run build
