@@ -42,7 +42,7 @@ else
 fi
 
 # 3. Build the app.
-npm install
+npm ci
 npm run build
 
 # 4. Auto-login `pi` on tty1 (systemd getty drop-in).

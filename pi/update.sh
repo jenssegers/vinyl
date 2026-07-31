@@ -3,10 +3,13 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Discard any package-lock.json drift a prior `npm install` left behind, so the pull stays fast-forwardable.
+# Discard package-lock.json drift from any manual `npm install` run on this box, so the pull stays fast-forwardable.
 git restore package-lock.json
 git pull --ff-only
-npm install
+
+# `npm ci` over `npm install`: it wipes node_modules first, which avoids the ENOTEMPTY rename
+# failures Debian's npm 9 hits when a dependency tree reshuffles, and it never rewrites the lockfile.
+npm ci
 npm run build
 sudo systemctl restart vinyl
 pkill chromium || true
