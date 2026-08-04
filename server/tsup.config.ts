@@ -10,7 +10,7 @@ export default defineConfig({
     'setup-spotify': path.join(root, 'src/setup-spotify.ts'),
   },
   format: ['esm'],
-  target: 'node20',
+  target: 'node24',
   outDir: path.join(root, 'dist'),
   clean: true,
   sourcemap: true,

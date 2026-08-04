@@ -8,20 +8,28 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-# 1. apt packages (minimal Wayland kiosk stack + Node).
-#    Trixie's apt nodejs is 20.19. Node 20 hit upstream EOL Apr 30 2026, but
-#    the project's tsup build targets node20 and runs fine on it. Acceptable
-#    for a private kiosk; swap in NodeSource setup_22.x if you want newer.
+# 1. apt packages (minimal Wayland kiosk stack).
 sudo apt-get update
 sudo apt-get install --no-install-recommends -y \
   labwc seatd wlr-randr wlopm \
   chromium \
   swayidle wtype \
   fonts-dejavu-core libgl1-mesa-dri xdg-user-dirs \
-  nodejs npm \
-  curl ca-certificates git
+  curl ca-certificates gnupg git
 
-# 2. Configure HDMI timings for the Waveshare 7" 1080x1080 round display.
+# 2. Node 24 from NodeSource, not apt.
+#    Trixie ships nodejs 20.19 (EOL Apr 30 2026) with npm 9.2.0, and that npm cannot install this
+#    repo: its resolver rejects the lockfile ("Missing: @emnapi/runtime from lock file") and it hits
+#    ENOTEMPTY rename errors when the dependency tree reshuffles. Node 24 is Active LTS until Apr
+#    2028 and bundles npm 11, the same major that writes the lockfile.
+#    NodeSource's nodejs bundles npm and conflicts with Debian's separate npm package.
+if ! node --version 2>/dev/null | grep -q '^v24\.'; then
+  sudo apt-get remove -y npm || true
+  curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+fi
+
+# 3. Configure HDMI timings for the Waveshare 7" 1080x1080 round display.
 #    /boot/firmware/config.txt controls the Pi firmware display output.
 #    hdmi_mode=87 + hdmi_timings defines the custom 1080x1080@60Hz signal;
 #    without this the Pi won't drive the non-standard square panel correctly.
@@ -41,11 +49,11 @@ else
   echo "HDMI timings already present in $CONFIG, skipping"
 fi
 
-# 3. Build the app.
+# 4. Build the app.
 npm ci
 npm run build
 
-# 4. Auto-login `pi` on tty1 (systemd getty drop-in).
+# 5. Auto-login `pi` on tty1 (systemd getty drop-in).
 sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
 sudo tee /etc/systemd/system/getty@tty1.service.d/autologin.conf >/dev/null <<'EOF'
 [Service]
@@ -53,16 +61,16 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin pi --noclear %I $TERM
 EOF
 
-# 5. Auto-launch labwc on tty1 login (idempotent — appended once).
+# 6. Auto-launch labwc on tty1 login (idempotent — appended once).
 LAUNCH_LINE='if [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then exec labwc; fi'
 grep -qxF "$LAUNCH_LINE" ~/.bash_profile 2>/dev/null || echo "$LAUNCH_LINE" >> ~/.bash_profile
 
-# 6. Install kiosk autostart + keybinds.
+# 7. Install kiosk autostart + keybinds.
 mkdir -p ~/.config/labwc
 install -m 0644 ~/vinyl/pi/autostart ~/.config/labwc/autostart
 install -m 0644 ~/vinyl/pi/rc.xml    ~/.config/labwc/rc.xml
 
-# 7. Install + enable the systemd unit (don't start yet — no tokens until auth).
+# 8. Install + enable the systemd unit (don't start yet — no tokens until auth).
 sudo install -m 0644 ~/vinyl/pi/vinyl.service /etc/systemd/system/vinyl.service
 sudo systemctl daemon-reload
 sudo systemctl enable vinyl.service
