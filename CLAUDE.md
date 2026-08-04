@@ -20,7 +20,13 @@ client/   Vite + React SPA
 server/   Fastify backend
 ```
 
-State flows one way: Fastify polls Spotify every 2s → pushes `Display` state over SSE (`/events`) → React renders.
+State flows one way: Fastify polls Spotify every 2s → pushes `Display` state over SSE (`/events`) → React renders. The one exception is touch: the client `POST`s to `/api/playback/:command`, and the server re-polls early (`poller.refreshSoon()`) so the pushed state catches up.
+
+## Touch
+
+Zoom is disabled in three places: the viewport meta tag, `touch-action: none` in `index.css`, and `--disable-pinch` in the Chromium kiosk args. The flag is the load-bearing one — desktop Chromium treats pinch as browser page zoom, which the meta tag does not govern.
+
+`useRecordGestures`: press pauses, release under 400ms is a tap (stays paused), longer resumes. A Spotify round trip takes ~300ms, so the hook renders an optimistic playing state until the poller reports the same thing (or 5s pass, or the command fails).
 
 ## Display state machine
 
@@ -34,6 +40,8 @@ Four states that mirror the Spotify response directly:
 ## Spotify auth
 
 PKCE flow, one-time setup. Refresh token persisted to `~/.config/vinyl/tokens.json`. Re-run `npm run setup:spotify` only if tokens are deleted.
+
+Scopes: `user-read-currently-playing`, `user-read-playback-state`, `user-modify-playback-state`. A refresh grant cannot widen scopes, so adding one means deleting `tokens.json` and re-running setup on the Pi. Control endpoints need Spotify Premium.
 
 ## Key env vars
 

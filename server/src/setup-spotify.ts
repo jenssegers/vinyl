@@ -12,7 +12,7 @@ import { loadTokens, saveTokens } from './tokens';
 const REDIRECT_URI =
   process.env.SPOTIFY_REDIRECT_URI ?? `http://127.0.0.1:${config.setupPort}/auth/callback`;
 
-const SCOPES = 'user-read-currently-playing user-read-playback-state';
+const SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state';
 
 intro('Vinyl — Spotify setup');
 

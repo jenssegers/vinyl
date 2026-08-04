@@ -4,6 +4,7 @@ import { config } from './config';
 
 import { poller } from './poller';
 import { eventsRoute } from './routes/events';
+import { playbackRoute } from './routes/playback';
 import { staticRoute } from './routes/static';
 import { loadTokens } from './tokens';
 
@@ -25,6 +26,7 @@ const app = Fastify({ logger: { level: 'warn' } });
 if (config.fakeScreen) log.warn('fake screen mode — wlr-randr disabled');
 
 await app.register(eventsRoute);
+await app.register(playbackRoute);
 
 if (process.env.NODE_ENV === 'production') {
   await app.register(staticRoute);

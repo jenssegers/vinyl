@@ -12,6 +12,8 @@ exec chromium \
   --disable-component-update \
   --check-for-update-interval=31536000 \
   --autoplay-policy=no-user-gesture-required \
+  --disable-pinch \
+  --force-device-scale-factor=1 \
   --password-store=basic \
   --disable-background-networking \
   --disable-sync \

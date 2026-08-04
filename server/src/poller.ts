@@ -48,6 +48,12 @@ class Poller extends EventEmitter {
     return this.display;
   }
 
+  /** Poll ahead of the base interval, so a playback command reaches the display quickly. */
+  refreshSoon(delayMs = 400): void {
+    if (this.pollTimer) clearTimeout(this.pollTimer);
+    this.scheduleNextTick(delayMs);
+  }
+
   private scheduleNextTick(delayMs: number): void {
     this.pollTimer = setTimeout(() => void this.tick(), delayMs);
   }

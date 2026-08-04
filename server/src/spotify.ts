@@ -102,3 +102,27 @@ export async function getCurrentlyPlaying(): Promise<{
     device: data.device ?? null,
   };
 }
+
+async function sendPlayerCommand(path: string): Promise<void> {
+  const token = await getAccessToken();
+  const response = await fetch(`${API}/me/player/${path}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+
+  // Success is 204, but Spotify also answers 202 while the command reaches the
+  // device. 403 means the player is already in the requested state.
+  if (response.ok || response.status === 403) return;
+  if (response.status === 404) throw new Error('no active spotify device');
+  if (response.status === 429) throw new Error('rate limited by spotify');
+  throw new Error(`spotify API error: ${response.status}`);
+}
+
+export function pausePlayback(): Promise<void> {
+  return sendPlayerCommand('pause');
+}
+
+export function resumePlayback(): Promise<void> {
+  return sendPlayerCommand('play');
+}

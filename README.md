@@ -2,6 +2,15 @@
 
 Spinning vinyl record display that mirrors whatever is playing on Spotify. Runs on a Raspberry Pi connected to a [Waveshare 7" 1080x1080 round HDMI display](https://www.waveshare.com/7inch-1080x1080-lcd.htm). Screen turns off automatically when nothing is playing.
 
+## Touch
+
+The panel is a touchscreen, and the record behaves like one you can put a hand on:
+
+- **Tap** — pauses; tap again to resume.
+- **Press and hold** — pauses while your finger is down and resumes when you let go (anything under 400ms counts as a tap).
+
+Zoom is disabled entirely: there is no keyboard to undo an accidental pinch. Playback control needs a Spotify Premium account.
+
 ## Stack
 
 - **Client** — Vite + React + TypeScript, served from `client/`
@@ -60,6 +69,8 @@ cd ~/vinyl && npm run setup:spotify
 ```
 
 The script prints an authorization URL. Open it in your laptop browser, authorize, and the callback flows back through the SSH tunnel to the Pi where tokens are written to `~/.config/vinyl/tokens.json`.
+
+Refreshing a token cannot widen its scopes, so whenever the app asks for a new one you have to `rm ~/.config/vinyl/tokens.json` and repeat this step.
 
 ```sh
 sudo reboot
