@@ -1,11 +1,13 @@
+import type { Ref } from 'react';
 import { useAlbumColor } from '../hooks/useAlbumColor';
 
 interface RecordProps {
   albumArt: string;
-  isPlaying: boolean;
+  /** The rotating layer, driven by `useRecordGestures`. */
+  ref: Ref<HTMLDivElement>;
 }
 
-export function Record({ albumArt, isPlaying }: RecordProps) {
+export function Record({ albumArt, ref }: RecordProps) {
   const {
     color: [r, g, b],
     loadedArt,
@@ -18,7 +20,7 @@ export function Record({ albumArt, isPlaying }: RecordProps) {
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <div className={`absolute inset-0 rounded-full ${isPlaying ? 'spin-record' : 'spin-paused'}`}>
+      <div ref={ref} className="absolute inset-0 rounded-full will-change-transform">
         <div
           className="absolute inset-0 rounded-full"
           style={{

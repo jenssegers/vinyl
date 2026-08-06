@@ -26,7 +26,9 @@ State flows one way: Fastify polls Spotify every 2s → pushes `Display` state o
 
 Zoom is disabled in three places: the viewport meta tag, `touch-action: none` in `index.css`, and `--disable-pinch` in the Chromium kiosk args. The flag is the load-bearing one — desktop Chromium treats pinch as browser page zoom, which the meta tag does not govern.
 
-`useRecordGestures`: press pauses, release under 400ms is a tap (stays paused), longer resumes. A Spotify round trip takes ~300ms, so the hook renders an optimistic playing state until the poller reports the same thing (or 5s pass, or the command fails).
+`useRecordGestures`: press pauses, dragging turns the record under the finger, and release resumes unless it was a tap on a playing record (under 400ms and under 4° of turn). A Spotify round trip takes ~300ms, so the hook renders an optimistic playing state until the poller reports the same thing (or 5s pass, or the command fails).
+
+The rotation is a Web Animations API animation rather than a CSS keyframe, because dragging scrubs `currentTime` to follow the finger and playback has to resume from that angle. `SPIN_MS` is therefore both the duration of one turn and the scale factor between angle and time.
 
 ## Display state machine
 

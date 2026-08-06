@@ -7,7 +7,8 @@ Spinning vinyl record display that mirrors whatever is playing on Spotify. Runs 
 The panel is a touchscreen, and the record behaves like one you can put a hand on:
 
 - **Tap** — pauses; tap again to resume.
-- **Press and hold** — pauses while your finger is down and resumes when you let go (anything under 400ms counts as a tap).
+- **Press and hold** — stopped for as long as your finger is down, spinning again the moment you lift off.
+- **Turn** — drag around the record while holding it and it follows your finger; let go and it picks up from that angle.
 
 Zoom is disabled entirely: there is no keyboard to undo an accidental pinch. Playback control needs a Spotify Premium account.
 

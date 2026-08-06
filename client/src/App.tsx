@@ -5,7 +5,7 @@ import { useRecordGestures } from './hooks/useRecordGestures';
 
 export default function App() {
   const display = useDisplay();
-  const { isPlaying, isPressed, handlers } = useRecordGestures(display);
+  const { recordRef, isPressed, handlers } = useRecordGestures(display);
 
   if (display.kind === 'off') return null;
 
@@ -18,7 +18,7 @@ export default function App() {
       {display.kind === 'error' ? (
         <Platter message={display.message} />
       ) : (
-        <Record albumArt={display.track.albumArt} isPlaying={isPlaying} />
+        <Record albumArt={display.track.albumArt} ref={recordRef} />
       )}
     </div>
   );
