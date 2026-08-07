@@ -50,7 +50,7 @@ else
 fi
 
 # 4. Build the app.
-npm ci
+npm install --no-save
 npm run build
 
 # 5. Auto-login `pi` on tty1 (systemd getty drop-in).
