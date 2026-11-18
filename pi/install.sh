@@ -49,6 +49,13 @@ else
   echo "HDMI timings already present in $CONFIG, skipping"
 fi
 
+# Let the server set the panel's backlight over USB HID without root: the pi user is in plugdev.
+sudo tee /etc/udev/rules.d/99-vinyl-backlight.rules >/dev/null <<'EOF'
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0712", ATTRS{idProduct}=="000a", MODE="0660", GROUP="plugdev"
+EOF
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=hidraw
+
 # Console autologin on tty1, through Raspberry Pi's own config tool.
 sudo raspi-config nonint do_boot_behaviour B2
 

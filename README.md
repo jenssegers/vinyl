@@ -42,7 +42,7 @@ pnpm typecheck          # tsc; Node strips types without checking them
 pnpm lint               # Biome
 ```
 
-Set `VINYL_FAKE_SCREEN=1` in `.env` to stub out `wlr-randr` (useful on non-Pi machines; it is on by default off Linux).
+Set `VINYL_FAKE_SCREEN=1` in `.env` to stub out `wlr-randr` and the backlight (useful on non-Pi machines; it is on by default off Linux).
 
 ## Pi deployment
 

@@ -2,6 +2,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { z } from 'zod';
 
+/** Bavegem, Belgium: where the record player stands, for sunset and sunrise. */
+const DEFAULT_LOCATION = { latitude: 50.94, longitude: 3.87 };
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -13,12 +16,20 @@ const envSchema = z
     VINYL_FAKE_SCREEN: z.stringbool().default(false),
     VINYL_TOKENS_PATH: z.string().optional(),
     VINYL_ALLOWED_DEVICES: z.string().optional(),
+    VINYL_LATITUDE: z.coerce.number().min(-90).max(90).optional(),
+    VINYL_LONGITUDE: z.coerce.number().min(-180).max(180).optional(),
+    VINYL_DAY_BRIGHTNESS: z.coerce.number().int().min(0).max(100).default(75),
+    VINYL_NIGHT_BRIGHTNESS: z.coerce.number().int().min(0).max(100).default(25),
     WAYLAND_DISPLAY: z.string().optional(),
     XDG_RUNTIME_DIR: z.string().default('/run/user/1000'),
   })
   .refine((env) => env.PORT !== env.SPOTIFY_SETUP_PORT, {
     message: 'must differ from PORT',
     path: ['SPOTIFY_SETUP_PORT'],
+  })
+  .refine((env) => (env.VINYL_LATITUDE === undefined) === (env.VINYL_LONGITUDE === undefined), {
+    message: 'set both VINYL_LATITUDE and VINYL_LONGITUDE, or neither',
+    path: ['VINYL_LONGITUDE'],
   })
   .transform((env) => ({
     port: env.PORT,
@@ -36,6 +47,12 @@ const envSchema = z
       .split(',')
       .map((device) => device.trim().toLowerCase())
       .filter(Boolean),
+    location: {
+      latitude: env.VINYL_LATITUDE ?? DEFAULT_LOCATION.latitude,
+      longitude: env.VINYL_LONGITUDE ?? DEFAULT_LOCATION.longitude,
+    },
+    dayBrightness: env.VINYL_DAY_BRIGHTNESS,
+    nightBrightness: env.VINYL_NIGHT_BRIGHTNESS,
     waylandDisplay: env.WAYLAND_DISPLAY,
     xdgRuntimeDir: env.XDG_RUNTIME_DIR,
   }));

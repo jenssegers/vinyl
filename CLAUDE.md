@@ -5,10 +5,11 @@ Vinyl is a Spotify "now playing" display that runs as a kiosk on a Raspberry Pi.
 ## Hardware
 
 - **Pi OS Trixie** (Wayland, labwc compositor)
-- **Display**: [Waveshare 7" 1080x1080 round HDMI](https://docs.waveshare.com/7inch_1080x1080_LCD): `HDMI-A-1` in wlr-randr; no software brightness control (no DDC/CI, no backlight interface)
+- **Display**: [Waveshare 7" 1080x1080 round HDMI](https://docs.waveshare.com/7inch_1080x1080_LCD): `HDMI-A-1` in wlr-randr
 - **Screen control**: `wlr-randr --output HDMI-A-1 --on/--off`
   - Must set `WAYLAND_DISPLAY=wayland-1` and `XDG_RUNTIME_DIR=/run/user/1000` when invoking from systemd (outside the desktop session)
   - On non-Linux or with `VINYL_FAKE_SCREEN=1`, `screen.ts` logs instead of shelling out
+- **Backlight**: no DDC/CI. The panel takes a USB HID report (USB `0712:000a`, the touch cable) that the server writes to its `/dev/hidrawN`. Waveshare's own script detaches the kernel driver instead, which would cut off touch. A udev rule from `install.sh` lets the `pi` user write it without root. Dimmed after sunset, from `VINYL_LATITUDE`/`VINYL_LONGITUDE`.
 - **Kiosk**: Chromium opens `http://127.0.0.1:3000` full-screen via labwc autostart
 
 ## Architecture
@@ -48,13 +49,17 @@ Scopes: `user-read-currently-playing`, `user-read-playback-state`, `user-modify-
 
 ## Key env vars
 
-| Var                     | Default                               | Purpose                                                                                                                |
-| ----------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `SPOTIFY_CLIENT_ID`     | none                                  | Required                                                                                                               |
-| `PORT`                  | `3000`                                | Server port                                                                                                            |
-| `SPOTIFY_SETUP_PORT`    | `3001`                                | Port for the one-time OAuth callback server (must not equal `PORT`)                                                    |
-| `SPOTIFY_REDIRECT_URI`  | `http://127.0.0.1:3001/auth/callback` | Must match Spotify app dashboard                                                                                       |
-| `VINYL_PAUSE_TO_OFF_MS` | `10000`                               | Pause-to-screen-off delay (ms)                                                                                         |
-| `VINYL_FAKE_SCREEN`     | auto                                  | Set `1` to stub wlr-randr                                                                                              |
-| `VINYL_TOKENS_PATH`     | `~/.config/vinyl/tokens.json`         | Token storage                                                                                                          |
-| `VINYL_ALLOWED_DEVICES` | (unset = allow all)                   | Comma-separated case-insensitive substrings matched against Spotify device names or IDs. e.g. `arc` matches `Arc + 1`. |
+| Var                      | Default                               | Purpose                                                                                                                |
+| ------------------------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `SPOTIFY_CLIENT_ID`      | none                                  | Required                                                                                                               |
+| `PORT`                   | `3000`                                | Server port                                                                                                            |
+| `SPOTIFY_SETUP_PORT`     | `3001`                                | Port for the one-time OAuth callback server (must not equal `PORT`)                                                    |
+| `SPOTIFY_REDIRECT_URI`   | `http://127.0.0.1:3001/auth/callback` | Must match Spotify app dashboard                                                                                       |
+| `VINYL_PAUSE_TO_OFF_MS`  | `10000`                               | Pause-to-screen-off delay (ms)                                                                                         |
+| `VINYL_FAKE_SCREEN`      | auto                                  | Set `1` to stub wlr-randr and the backlight                                                                            |
+| `VINYL_LATITUDE`         | `50.94` (Bavegem, Belgium)            | Location for sunset and sunrise, with `VINYL_LONGITUDE`                                                                |
+| `VINYL_LONGITUDE`        | `3.87` (Bavegem, Belgium)             | See `VINYL_LATITUDE`                                                                                                   |
+| `VINYL_DAY_BRIGHTNESS`   | `75`                                  | Backlight percent while the sun is up                                                                                  |
+| `VINYL_NIGHT_BRIGHTNESS` | `25`                                  | Backlight percent after sunset                                                                                         |
+| `VINYL_TOKENS_PATH`      | `~/.config/vinyl/tokens.json`         | Token storage                                                                                                          |
+| `VINYL_ALLOWED_DEVICES`  | (unset = allow all)                   | Comma-separated case-insensitive substrings matched against Spotify device names or IDs. e.g. `arc` matches `Arc + 1`. |

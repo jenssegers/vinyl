@@ -202,6 +202,9 @@ importers:
       react-dom:
         specifier: ^19.3.1
         version: 19.3.1(react@19.3.1)
+      suncalc:
+        specifier: ^2.1.4
+        version: 2.1.4
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1263,6 +1266,9 @@ packages:
     resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
     engines: {node: '>=12'}
 
+  suncalc@2.1.4:
+    resolution: {integrity: sha512-V7oSdbSezigEpbqnNWKujDlZaE/QA/0w5IbP/vXX+eIF+EtiE8e9BkSapsOFZc84jJkI3QlklYTWtMqzj9tZQg==}
+
   supports-color@10.2.2:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
@@ -2240,6 +2246,8 @@ snapshots:
   strip-ansi@7.2.0:
     dependencies:
       ansi-regex: 6.2.2
+
+  suncalc@2.1.4: {}
 
   supports-color@10.2.2: {}
 

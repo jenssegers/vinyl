@@ -1,5 +1,6 @@
 import { consola } from 'consola';
 import Fastify from 'fastify';
+import { startBrightnessSchedule } from './brightness.ts';
 import { config } from './config.ts';
 import { eventsRoute } from './events-route.ts';
 import { playbackRoute } from './playback-route.ts';
@@ -22,7 +23,9 @@ process.on('unhandledRejection', (reason) => {
 const log = consola.withTag('vinyl');
 const app = Fastify({ logger: { level: 'warn' } });
 
-if (config.fakeScreen) log.warn('fake screen mode, wlr-randr disabled');
+if (config.fakeScreen) log.warn('fake screen mode, wlr-randr and backlight disabled');
+
+const stopBrightnessSchedule = startBrightnessSchedule();
 
 await app.register(eventsRoute);
 await app.register(playbackRoute);
@@ -40,6 +43,7 @@ if (loadTokens()) {
 
 const shutdown = async () => {
   poller.stop();
+  stopBrightnessSchedule();
   await app.close().catch((error: unknown) => log.error(error, 'error during shutdown'));
   process.exit(0);
 };
