@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 # for interactive shells: https://pnpm.io/installation#using-a-standalone-script
 # Any pnpm will do: it switches itself to the exact version in package.json's `packageManager`.
 export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
+export PATH="$PNPM_HOME/bin:$PATH"
 if ! command -v pnpm >/dev/null; then
   curl -fsSL https://get.pnpm.io/install.sh | sh -
 fi
