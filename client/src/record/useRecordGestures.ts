@@ -1,5 +1,5 @@
 import { type PointerEvent, useCallback, useEffect, useRef, useState } from 'react';
-import type { Display } from './useDisplay';
+import type { Display, PlaybackCommand } from '../../../shared/display.ts';
 
 /** One full turn of the record. */
 const SPIN_MS = 4000;
@@ -11,9 +11,7 @@ const HOLD_MS = 400;
 const TURN_DEADZONE_DEG = 4;
 
 /** How long to trust the optimistic state before falling back to the server's. */
-const OVERRIDE_TIMEOUT_MS = 5000;
-
-type Command = 'play' | 'pause';
+const OPTIMISTIC_TIMEOUT_MS = 5000;
 
 interface Point {
   x: number;
@@ -52,7 +50,7 @@ function wrapTime(time: number): number {
 
 export function useRecordGestures(display: Display): RecordGestures {
   const isPlayingOnServer = display.kind === 'playing';
-  const [override, setOverride] = useState<boolean | null>(null);
+  const [optimisticIsPlaying, setOptimisticIsPlaying] = useState<boolean | null>(null);
   const [isPressed, setIsPressed] = useState(false);
   const [recordElement, setRecordElement] = useState<HTMLDivElement | null>(null);
   const [spin, setSpin] = useState<Animation | null>(null);
@@ -74,7 +72,7 @@ export function useRecordGestures(display: Display): RecordGestures {
     };
   }, [recordElement]);
 
-  const isPlaying = override ?? isPlayingOnServer;
+  const isPlaying = optimisticIsPlaying ?? isPlayingOnServer;
 
   // A finger on the record holds it still, whatever Spotify is doing.
   useEffect(() => {
@@ -86,22 +84,22 @@ export function useRecordGestures(display: Display): RecordGestures {
   // The poller needs a moment to see the command land, so the touch drives the
   // record locally until the server reports the same thing.
   useEffect(() => {
-    if (override === null) return;
-    if (override === isPlayingOnServer) {
-      setOverride(null);
+    if (optimisticIsPlaying === null) return;
+    if (optimisticIsPlaying === isPlayingOnServer) {
+      setOptimisticIsPlaying(null);
       return;
     }
-    const timer = setTimeout(() => setOverride(null), OVERRIDE_TIMEOUT_MS);
+    const timer = setTimeout(() => setOptimisticIsPlaying(null), OPTIMISTIC_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [override, isPlayingOnServer]);
+  }, [optimisticIsPlaying, isPlayingOnServer]);
 
-  const send = useCallback((command: Command) => {
-    setOverride(command === 'play');
+  const sendCommand = useCallback((command: PlaybackCommand) => {
+    setOptimisticIsPlaying(command === 'play');
     fetch(`/api/playback/${command}`, { method: 'POST' })
       .then((response) => {
-        if (!response.ok) setOverride(null);
+        if (!response.ok) setOptimisticIsPlaying(null);
       })
-      .catch(() => setOverride(null));
+      .catch(() => setOptimisticIsPlaying(null));
   }, []);
 
   const hasTrack = display.kind === 'playing' || display.kind === 'paused';
@@ -126,7 +124,7 @@ export function useRecordGestures(display: Display): RecordGestures {
     };
 
     setIsPressed(true);
-    if (isPlaying) send('pause');
+    if (isPlaying) sendCommand('pause');
   };
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>): void => {
@@ -155,7 +153,7 @@ export function useRecordGestures(display: Display): RecordGestures {
     // a tap on a playing record leaves it stopped.
     const held = performance.now() - active.startedAt;
     const turned = Math.abs(active.turned) >= TURN_DEADZONE_DEG;
-    if (!active.didPause || held >= HOLD_MS || turned) send('play');
+    if (!active.didPause || held >= HOLD_MS || turned) sendCommand('play');
   };
 
   return {

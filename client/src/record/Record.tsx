@@ -1,5 +1,5 @@
 import type { Ref } from 'react';
-import { useAlbumColor } from '../hooks/useAlbumColor';
+import { useAlbumColor } from './useAlbumColor.ts';
 
 interface RecordProps {
   albumArt: string;
@@ -8,18 +8,13 @@ interface RecordProps {
 }
 
 export function Record({ albumArt, ref }: RecordProps) {
-  const {
-    color: [r, g, b],
-    loadedArt,
-  } = useAlbumColor(albumArt);
+  const { color, loadedArt } = useAlbumColor(albumArt);
 
-  const base = `rgb(${r} ${g} ${b})`;
-  const grooveDark = `color-mix(in oklab, ${base}, black 35%)`;
-  const grooveLight = `color-mix(in oklab, ${base}, white 15%)`;
-  const size = 'min(100vw, 100vh)';
+  const grooveDark = `color-mix(in oklab, ${color}, black 35%)`;
+  const grooveLight = `color-mix(in oklab, ${color}, white 15%)`;
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative size-[100vmin]">
       <div ref={ref} className="absolute inset-0 rounded-full will-change-transform">
         <div
           className="absolute inset-0 rounded-full"
@@ -28,13 +23,8 @@ export function Record({ albumArt, ref }: RecordProps) {
           }}
         />
         <div
-          className="absolute rounded-full bg-center"
-          style={{
-            inset: '12%',
-            backgroundImage: loadedArt ? `url("${loadedArt}")` : undefined,
-            backgroundColor: loadedArt ? undefined : '#374151',
-            backgroundSize: '104%',
-          }}
+          className={`absolute inset-[12%] rounded-full bg-center bg-size-[104%] ${loadedArt ? '' : 'bg-gray-700'}`}
+          style={{ backgroundImage: loadedArt ? `url("${loadedArt}")` : undefined }}
         />
       </div>
 
@@ -46,10 +36,8 @@ export function Record({ albumArt, ref }: RecordProps) {
         }}
       />
 
-      <div
-        className="absolute rounded-full bg-black pointer-events-none"
-        style={{ inset: '48.5%' }}
-      />
+      {/* Spindle hole */}
+      <div className="absolute inset-[48.5%] rounded-full bg-black pointer-events-none" />
     </div>
   );
 }

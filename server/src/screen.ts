@@ -3,52 +3,59 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { consola } from 'consola';
-import { config } from './config';
+import { config } from './config.ts';
+
+/** The Waveshare panel's output name in `wlr-randr`. */
+const OUTPUT_NAME = 'HDMI-A-1';
+
+/** labwc's usual socket, for when no socket can be found yet. */
+const DEFAULT_WAYLAND_DISPLAY = 'wayland-1';
+
+export type ScreenState = 'on' | 'off';
 
 const exec = promisify(execFile);
 const log = consola.withTag('screen');
 
-let lastState: 'on' | 'off' | null = null;
+let lastState: ScreenState | null = null;
 
 // Detect at call time so a compositor that starts after vinyl is still found.
-// Verify the env-provided value first — systemd may have a stale hardcoded name.
+// Verify the env-provided value first: systemd may have a stale hardcoded name.
 function resolveWaylandDisplay(): string {
-  const { xdgRuntimeDir } = config;
-  const envValue = process.env.WAYLAND_DISPLAY;
-  if (envValue) {
-    try {
-      fs.statSync(path.join(xdgRuntimeDir, envValue));
-      return envValue;
-    } catch {
-      /* doesn't exist */
-    }
+  const { waylandDisplay, xdgRuntimeDir } = config;
+  if (waylandDisplay && fs.existsSync(path.join(xdgRuntimeDir, waylandDisplay))) {
+    return waylandDisplay;
   }
+
   try {
-    const socket = fs.readdirSync(xdgRuntimeDir).find((e) => /^wayland-\d+$/.test(e));
+    const socket = fs.readdirSync(xdgRuntimeDir).find((entry) => /^wayland-\d+$/.test(entry));
     if (socket) return socket;
   } catch {
-    /* runtime dir inaccessible */
+    // Runtime dir not readable: fall back to the default.
   }
-  return 'wayland-1';
+  return DEFAULT_WAYLAND_DISPLAY;
 }
 
-export function setScreen(state: 'on' | 'off'): void {
+export function setScreen(state: ScreenState): void {
   if (state === lastState) return;
 
+  // Off the Pi there is no panel to switch.
   if (config.fakeScreen) {
     lastState = state;
     return;
   }
 
-  const { xdgRuntimeDir } = config;
   const waylandDisplay = resolveWaylandDisplay();
   log.info(`turning ${state} (${waylandDisplay})`);
 
-  const env = { ...process.env, WAYLAND_DISPLAY: waylandDisplay, XDG_RUNTIME_DIR: xdgRuntimeDir };
-  exec('wlr-randr', ['--output', 'HDMI-A-1', state === 'on' ? '--on' : '--off'], { env })
+  const env = {
+    ...process.env,
+    WAYLAND_DISPLAY: waylandDisplay,
+    XDG_RUNTIME_DIR: config.xdgRuntimeDir,
+  };
+  exec('wlr-randr', ['--output', OUTPUT_NAME, state === 'on' ? '--on' : '--off'], { env })
     .then(() => {
       lastState = state;
       log.success(`${state} ok`);
     })
-    .catch((err: Error) => log.error(err, `screen ${state} failed`));
+    .catch((error: unknown) => log.error(error, `screen ${state} failed`));
 }

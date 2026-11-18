@@ -14,9 +14,10 @@ Zoom is disabled entirely: there is no keyboard to undo an accidental pinch. Pla
 
 ## Stack
 
-- **Client** — Vite + React + TypeScript, served from `client/`
-- **Server** — Fastify (Node.js), served from `server/`; polls Spotify every 2s and pushes state to the client over SSE
-- **Screen control** — `wlr-randr` toggles the HDMI display on play/pause transitions
+- **Client**: Vite + React + TypeScript, in `client/`
+- **Server**: Fastify on Node 24, in `server/`, which runs the TypeScript directly; polls Spotify every 2s and pushes state to the client over SSE
+- **Shared**: the display state contract between both, in `shared/`
+- **Screen control**: `wlr-randr` toggles the HDMI display on play/pause transitions
 
 ## Setup
 
@@ -24,10 +25,10 @@ Zoom is disabled entirely: there is no keyboard to undo an accidental pinch. Pla
 cp .env.example .env
 # fill in SPOTIFY_CLIENT_ID in .env
 
-npm install
-npm run build
-npm run setup:spotify   # one-time: opens browser to authorize Spotify
-npm start
+pnpm install
+pnpm build              # builds the client; the server needs no build
+pnpm setup:spotify      # one-time: opens browser to authorize Spotify
+pnpm start
 ```
 
 The server listens on port 3000. In production on the Pi, Chromium kiosk opens `http://127.0.0.1:3000`.
@@ -35,14 +36,17 @@ The server listens on port 3000. In production on the Pi, Chromium kiosk opens `
 ## Development
 
 ```sh
-npm run dev             # Vite on :5173 + Fastify on :3000, with HMR
+pnpm dev                # Vite on :5173 + Fastify on :3000, with HMR
+pnpm test               # Vitest
+pnpm typecheck          # tsc; Node strips types without checking them
+pnpm lint               # Biome
 ```
 
-Set `VINYL_FAKE_SCREEN=1` in `.env` to stub out `wlr-randr` (logs instead of shelling out — useful on non-Pi machines).
+Set `VINYL_FAKE_SCREEN=1` in `.env` to stub out `wlr-randr` (useful on non-Pi machines; it is on by default off Linux).
 
 ## Pi deployment
 
-Tested on Pi OS Trixie Lite (64-bit, headless). Run on the Pi itself — no dev machine required.
+Tested on Pi OS Trixie Lite (64-bit, headless). Run on the Pi itself, as user `pi` with the repo in `~/vinyl`: the scripts and systemd unit assume both.
 
 ### Install
 
@@ -53,7 +57,7 @@ cp .env.example .env       # edit SPOTIFY_CLIENT_ID
 ./pi/install.sh
 ```
 
-The script installs apt dependencies, builds the app, configures auto-login + labwc + Chromium kiosk autostart, and enables the systemd service.
+The script installs apt dependencies and Node 24, configures auto-login + labwc + Chromium kiosk autostart, then runs `pi/deploy.sh`, which installs pnpm and the dependencies, builds the client, and (re)starts the systemd service.
 
 ### Authorize Spotify (one-time)
 
@@ -66,7 +70,7 @@ ssh -L 3001:127.0.0.1:3001 pi@<host>
 Then on the Pi:
 
 ```sh
-cd ~/vinyl && npm run setup:spotify
+cd ~/vinyl && pnpm setup:spotify
 ```
 
 The script prints an authorization URL. Open it in your laptop browser, authorize, and the callback flows back through the SSH tunnel to the Pi where tokens are written to `~/.config/vinyl/tokens.json`.
@@ -85,7 +89,7 @@ After reboot, labwc launches on tty1, the Fastify server starts via systemd, and
 ./pi/update.sh
 ```
 
-Runs `git pull && npm install && npm run build && sudo systemctl restart vinyl`.
+Pulls, then runs `pi/deploy.sh`. The kiosk page reloads by itself once the restarted server is back.
 
 ### Logs
 

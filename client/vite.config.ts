@@ -1,10 +1,9 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
+import path from 'node:path';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
 
-const root = path.dirname(fileURLToPath(import.meta.url))
+const root = import.meta.dirname;
 
 export default defineConfig({
   root,
@@ -18,7 +17,6 @@ export default defineConfig({
     proxy: {
       '/events': 'http://localhost:3000',
       '/api': 'http://localhost:3000',
-      '/auth': 'http://localhost:3000',
     },
   },
-})
+});

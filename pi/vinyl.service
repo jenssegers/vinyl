@@ -4,16 +4,13 @@ After=network-online.target user@1000.service
 Wants=network-online.target
 
 [Service]
-Type=simple
 User=pi
 WorkingDirectory=/home/pi/vinyl
 Environment=NODE_ENV=production
 Environment=XDG_RUNTIME_DIR=/run/user/1000
-ExecStart=/usr/bin/node server/dist/index.js
+ExecStart=/usr/bin/node --env-file-if-exists=.env server/src/index.ts
 Restart=on-failure
 RestartSec=5
-StandardOutput=journal
-StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

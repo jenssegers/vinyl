@@ -1,181 +1,199 @@
 import EventEmitter from 'node:events';
 import { consola } from 'consola';
-import { config } from './config';
-import { setScreen } from './screen';
-import { type Device, getCurrentlyPlaying, type Track } from './spotify';
+import type { Display, Track } from '../../shared/display.ts';
+import { config } from './config.ts';
+import { setScreen } from './screen.ts';
+import { type Device, getPlayback, type Playback } from './spotify/client.ts';
+import { SpotifyError } from './spotify/errors.ts';
 
-export type Display =
-  | { kind: 'playing'; track: Track }
-  | { kind: 'paused'; track: Track }
-  | { kind: 'off' }
-  | { kind: 'error'; message: string };
+const POLL_INTERVAL_MS = 2000;
+const MAX_BACKOFF_MS = 60_000;
 
-const POLL_BASE_MS = 2000;
-const POLL_MAX_MS = 60_000;
-const ERROR_THRESHOLD = 3; // surface error after this many consecutive failures
+/** Poll sooner after a playback command, so the display catches up with the touch. */
+const POLL_AFTER_COMMAND_MS = 400;
+
+/** Show the error on screen after this many failures in a row. */
+const ERROR_THRESHOLD = 3;
 
 const log = consola.withTag('poller');
 
-class Poller extends EventEmitter {
+/** Polls Spotify and turns what it reports into the `Display`, switching the screen to match. */
+export class Poller extends EventEmitter<{ change: [Display] }> {
   private display: Display = { kind: 'off' };
-  private consecutiveFailures = 0;
+  private isRunning = false;
+  private isPolling = false;
   private pollTimer: NodeJS.Timeout | null = null;
-  private pauseTimer: NodeJS.Timeout | null = null;
-  private lastDeviceKey: string | null | undefined = undefined;
+  private pollRequested = false;
+  private consecutiveFailures = 0;
+  private pausedAt = 0;
+  private lastLoggedDevice: string | null | undefined = undefined;
 
   start(): void {
-    void this.tick().then(() => {
+    this.isRunning = true;
+    void this.poll().then(() => {
+      // The screen may still be on from before vinyl started.
       if (this.display.kind === 'off') setScreen('off');
     });
   }
 
   stop(): void {
-    if (this.pollTimer) {
-      clearTimeout(this.pollTimer);
-      this.pollTimer = null;
-    }
-    this.clearPauseTimer();
-  }
-
-  private clearPauseTimer(): void {
-    if (this.pauseTimer) {
-      clearTimeout(this.pauseTimer);
-      this.pauseTimer = null;
-    }
+    this.isRunning = false;
+    if (this.pollTimer) clearTimeout(this.pollTimer);
+    this.pollTimer = null;
   }
 
   getState(): Display {
     return this.display;
   }
 
-  /** Poll ahead of the base interval, so a playback command reaches the display quickly. */
-  refreshSoon(delayMs = 400): void {
+  refreshSoon(): void {
+    // A poll in flight may have read the state from before the command, so poll again after it.
+    if (this.isPolling) {
+      this.pollRequested = true;
+      return;
+    }
+
+    this.scheduleNextPoll(POLL_AFTER_COMMAND_MS);
+  }
+
+  private scheduleNextPoll(delayMs: number): void {
+    if (!this.isRunning) return;
+
+    // Replace any pending poll, so only one chain of polls ever runs.
     if (this.pollTimer) clearTimeout(this.pollTimer);
-    this.scheduleNextTick(delayMs);
+    this.pollTimer = setTimeout(() => void this.poll(), delayMs);
   }
 
-  private scheduleNextTick(delayMs: number): void {
-    this.pollTimer = setTimeout(() => void this.tick(), delayMs);
+  private async poll(): Promise<void> {
+    this.isPolling = true;
+    this.pollRequested = false;
+
+    // Only failures of the Spotify call count towards the error state, not bugs in `show`.
+    const nextPollMs = await getPlayback().then(
+      (playback) => {
+        this.consecutiveFailures = 0;
+        this.show(playback);
+        return POLL_INTERVAL_MS;
+      },
+      (error: unknown) => this.recordFailure(error),
+    );
+
+    this.isPolling = false;
+    this.scheduleNextPoll(this.pollRequested ? POLL_AFTER_COMMAND_MS : nextPollMs);
   }
 
-  private isAllowed(device: Device | null): boolean {
-    if (config.allowedDevices.length === 0) return true;
-    if (!device) return false;
-    const name = device.name.toLowerCase();
-    const id = device.id?.toLowerCase() ?? '';
-    return config.allowedDevices.some((d) => name.includes(d) || (id !== '' && id.includes(d)));
+  private show(playback: Playback | null): void {
+    this.logDevice(playback?.device ?? null);
+
+    if (!playback || !isAllowedDevice(playback.device)) this.showOff();
+    else if (playback.isPlaying) this.showPlaying(playback.track);
+    else this.showPaused(playback.track);
   }
 
-  private async tick(): Promise<void> {
-    let nowPlaying: Awaited<ReturnType<typeof getCurrentlyPlaying>>;
-    try {
-      nowPlaying = await getCurrentlyPlaying();
-    } catch (err) {
-      this.handleFailure(err);
-      return;
-    }
-    this.consecutiveFailures = 0;
-
-    const deviceKey = nowPlaying?.device
-      ? `${nowPlaying.device.name} (${nowPlaying.device.type}, id=${nowPlaying.device.id})`
-      : null;
-    if (deviceKey !== this.lastDeviceKey) {
-      log.info('active device:', deviceKey ?? '<none>');
-      this.lastDeviceKey = deviceKey;
-    }
-
-    if (nowPlaying && !this.isAllowed(nowPlaying.device)) {
-      nowPlaying = null;
-    }
-
-    if (nowPlaying?.isPlaying) {
-      this.onPlaying(nowPlaying.track);
-    } else if (nowPlaying) {
-      this.onPaused(nowPlaying.track);
-    } else {
-      this.onOff();
-    }
-
-    this.scheduleNextTick(POLL_BASE_MS);
-  }
-
-  private handleFailure(err: unknown): void {
-    log.error(err as Error);
+  /** Returns how long to back off before the next poll. */
+  private recordFailure(error: unknown): number {
+    log.error(error);
     this.consecutiveFailures++;
+    const backoffMs = Math.min(POLL_INTERVAL_MS * 2 ** this.consecutiveFailures, MAX_BACKOFF_MS);
 
-    if (this.consecutiveFailures >= ERROR_THRESHOLD) {
-      this.enterError(friendlyError(err));
-    }
+    // A failure or two is usually a blip, so the display keeps what it shows.
+    if (this.consecutiveFailures < ERROR_THRESHOLD) return backoffMs;
 
-    const delay = Math.min(POLL_BASE_MS * 2 ** this.consecutiveFailures, POLL_MAX_MS);
-    if (this.consecutiveFailures >= ERROR_THRESHOLD) {
-      log.warn(
-        `spotify polling failed ${this.consecutiveFailures}x, retrying in ${Math.round(delay / 1000)}s`,
-      );
-    }
-    this.scheduleNextTick(delay);
+    log.warn(
+      `spotify polling failed ${this.consecutiveFailures}x, retrying in ${Math.round(backoffMs / 1000)}s`,
+    );
+    this.showError(describeFailure(error));
+    return backoffMs;
   }
 
-  private enterError(message: string): void {
-    if (this.display.kind === 'error') {
-      if (this.display.message !== message) {
-        this.update({ kind: 'error', message });
-      }
-      return;
-    }
+  private showError(message: string): void {
+    if (this.display.kind === 'error' && this.display.message === message) return;
 
-    log.warn(`surfacing error to display: ${message}`);
-    this.clearPauseTimer();
-    if (this.display.kind === 'off') {
-      setScreen('on');
-    }
+    if (this.display.kind !== 'error') log.warn(`surfacing error to display: ${message}`);
+    setScreen('on');
     this.update({ kind: 'error', message });
   }
 
-  private onPlaying(track: Track): void {
-    this.clearPauseTimer();
-    const display = this.display;
-    if (display.kind === 'playing' && display.track.id === track.id) return;
+  private showPlaying(track: Track): void {
+    if (this.display.kind === 'playing' && this.display.track.id === track.id) return;
 
     setScreen('on');
     this.update({ kind: 'playing', track });
   }
 
-  private onPaused(track: Track): void {
-    const display = this.display;
-    // From 'off', ignore — don't wake the screen just because a paused track
-    // is sitting in Spotify's player. We'd just blank again after the timer.
-    if (display.kind === 'off') return;
-    if (display.kind === 'paused' && display.track.id === track.id) return;
+  private showPaused(track: Track): void {
+    // Don't wake a blank screen just because a paused track sits in Spotify's player.
+    if (this.display.kind === 'off') return;
+
+    // A pause keeps the screen on for a while, counted from when playback first paused.
+    if (this.display.kind !== 'paused') {
+      this.pausedAt = Date.now();
+    } else if (Date.now() - this.pausedAt >= config.pauseToOffMs) {
+      this.showOff();
+      return;
+    } else if (this.display.track.id === track.id) {
+      return;
+    }
 
     setScreen('on');
     this.update({ kind: 'paused', track });
-    if (!this.pauseTimer) {
-      this.pauseTimer = setTimeout(() => this.onOff(), config.pauseToOffMs);
-    }
   }
 
-  private onOff(): void {
-    this.clearPauseTimer();
+  private showOff(): void {
     if (this.display.kind === 'off') return;
+
     setScreen('off');
     this.update({ kind: 'off' });
   }
 
-  private update(next: Display): void {
-    this.display = next;
-    this.emit('change', next);
+  private update(display: Display): void {
+    this.display = display;
+    this.emit('change', display);
+  }
+
+  private logDevice(device: Device | null): void {
+    const description = device ? `${device.name} (${device.type}, id=${device.id})` : null;
+    if (description === this.lastLoggedDevice) return;
+
+    log.info('active device:', description ?? '<none>');
+    this.lastLoggedDevice = description;
   }
 }
 
-function friendlyError(err: unknown): string {
-  const message = err instanceof Error ? err.message : String(err);
-  if (/token refresh failed/i.test(message)) return 'Spotify login expired';
-  if (/rate limited/i.test(message)) return 'Spotify rate limit';
-  if (/no spotify tokens/i.test(message)) return 'Spotify not connected';
-  if (/timeout|abort/i.test(message)) return 'Connection timeout';
-  if (/spotify api error/i.test(message)) return 'Spotify service error';
-  if (/fetch failed|enotfound|econnrefused|enetunreach/i.test(message)) return 'Network error';
+/** Unset `VINYL_ALLOWED_DEVICES` allows every device; otherwise the name or id must match one. */
+function isAllowedDevice(device: Device | null): boolean {
+  if (config.allowedDevices.length === 0) return true;
+  if (!device) return false;
+
+  const name = device.name.toLowerCase();
+  const id = device.id?.toLowerCase();
+  return config.allowedDevices.some((allowed) => name.includes(allowed) || id?.includes(allowed));
+}
+
+/** The message on the error platter: short enough to fit the arc. */
+function describeFailure(error: unknown): string {
+  if (error instanceof SpotifyError) {
+    switch (error.reason) {
+      case 'not-connected':
+        return 'Spotify not connected';
+      case 'authorization-failed':
+        return 'Spotify login expired';
+      case 'rate-limited':
+        return 'Spotify rate limit';
+      case 'no-active-device':
+      case 'service-error':
+        return 'Spotify service error';
+      default: {
+        const unhandled: never = error.reason;
+        return unhandled;
+      }
+    }
+  }
+
+  // `AbortSignal.timeout` rejects with a TimeoutError, and fetch rejects with a TypeError when
+  // the network fails: https://developer.mozilla.org/docs/Web/API/Window/fetch#exceptions
+  if (error instanceof DOMException && error.name === 'TimeoutError') return 'Connection timeout';
+  if (error instanceof TypeError) return 'Network error';
   return 'Spotify unreachable';
 }
 

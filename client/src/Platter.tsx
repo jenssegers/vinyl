@@ -3,14 +3,14 @@ interface PlatterProps {
 }
 
 const SPOKE_COUNT = 24;
-const SPINDLE_R = 3;
-const DASH_INNER_R = 9;
-const DASH_OUTER_R = 21;
-const SOLID_INNER_R = 29;
-const SOLID_OUTER_R = 46;
-const PLATTER_BORDER_R = 47.5;
+const SPINDLE_RADIUS = 3;
+const DASH_INNER_RADIUS = 9;
+const DASH_OUTER_RADIUS = 21;
+const SOLID_INNER_RADIUS = 29;
+const SOLID_OUTER_RADIUS = 46;
+const PLATTER_BORDER_RADIUS = 47.5;
 const TICKS_PER_SPOKE = 12;
-const TICK_ANGULAR_WIDTH = 0.12; // radians — tangential width per unit radius
+const TICK_ANGULAR_WIDTH = 0.12; // radians: tangential width per unit radius
 
 const TEXT_RADIUS = 25;
 const TEXT_ARC_DEGREES = 150;
@@ -20,32 +20,32 @@ const SPOKES = Array.from({ length: SPOKE_COUNT }, (_, i) => {
   return { angle, key: `spoke-${angle.toFixed(2)}` };
 });
 
-const TICK_RS = Array.from({ length: TICKS_PER_SPOKE }, (_, j) => {
-  const r = DASH_INNER_R + (j * (DASH_OUTER_R - DASH_INNER_R)) / (TICKS_PER_SPOKE - 1);
-  return { r, key: `tick-r-${r.toFixed(3)}` };
+const TICK_RADII = Array.from({ length: TICKS_PER_SPOKE }, (_, index) => {
+  const radius =
+    DASH_INNER_RADIUS + (index * (DASH_OUTER_RADIUS - DASH_INNER_RADIUS)) / (TICKS_PER_SPOKE - 1);
+  return { radius, key: `tick-${radius.toFixed(3)}` };
 });
 
-function polar(cx: number, cy: number, r: number, degrees: number) {
-  const rad = (degrees * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+/** A point on a circle around the center of the 100x100 view box. */
+function polarToCartesian(radius: number, degrees: number) {
+  const radians = (degrees * Math.PI) / 180;
+  return { x: 50 + radius * Math.cos(radians), y: 50 + radius * Math.sin(radians) };
 }
 
 function textArcPath(): string {
   const half = TEXT_ARC_DEGREES / 2;
   const startDeg = 90 + half;
   const endDeg = 90 - half;
-  const start = polar(50, 50, TEXT_RADIUS, startDeg);
-  const end = polar(50, 50, TEXT_RADIUS, endDeg);
+  const start = polarToCartesian(TEXT_RADIUS, startDeg);
+  const end = polarToCartesian(TEXT_RADIUS, endDeg);
   return `M ${start.x},${start.y} A ${TEXT_RADIUS},${TEXT_RADIUS} 0 0 0 ${end.x},${end.y}`;
 }
 
 const TEXT_PATH_D = textArcPath();
 
 export function Platter({ message }: PlatterProps) {
-  const size = 'min(100vw, 100vh)';
-
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative size-[100vmin]">
       <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full" aria-hidden="true">
         <defs>
           <radialGradient id="platter-bg" cx="50%" cy="50%" r="50%">
@@ -59,15 +59,15 @@ export function Platter({ message }: PlatterProps) {
 
         {SPOKES.map(({ angle, key }) => (
           <g key={key} transform={`rotate(${angle} 50 50)`}>
-            {TICK_RS.map(({ r, key: tickKey }) => {
-              const halfWidth = (r * TICK_ANGULAR_WIDTH) / 2;
+            {TICK_RADII.map(({ radius, key: tickKey }) => {
+              const halfWidth = (radius * TICK_ANGULAR_WIDTH) / 2;
               return (
                 <line
                   key={tickKey}
                   x1={50 - halfWidth}
-                  y1={50 - r}
+                  y1={50 - radius}
                   x2={50 + halfWidth}
-                  y2={50 - r}
+                  y2={50 - radius}
                   stroke="rgba(0,0,0,0.92)"
                   strokeWidth="0.55"
                 />
@@ -75,9 +75,9 @@ export function Platter({ message }: PlatterProps) {
             })}
             <line
               x1="50"
-              y1={50 - SOLID_OUTER_R}
+              y1={50 - SOLID_OUTER_RADIUS}
               x2="50"
-              y2={50 - SOLID_INNER_R}
+              y2={50 - SOLID_INNER_RADIUS}
               stroke="rgba(0,0,0,0.92)"
               strokeWidth="1.4"
             />
@@ -87,13 +87,13 @@ export function Platter({ message }: PlatterProps) {
         <circle
           cx="50"
           cy="50"
-          r={PLATTER_BORDER_R}
+          r={PLATTER_BORDER_RADIUS}
           fill="none"
           stroke="rgba(0,0,0,0.85)"
           strokeWidth="0.35"
         />
 
-        <circle cx="50" cy="50" r={SPINDLE_R} fill="#0a0a0a" />
+        <circle cx="50" cy="50" r={SPINDLE_RADIUS} fill="#0a0a0a" />
 
         <text
           fontSize="3.2"

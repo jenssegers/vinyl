@@ -1,9 +1,9 @@
-import { Platter } from './components/Platter';
-import { Record } from './components/Record';
-import { useDisplay } from './hooks/useDisplay';
-import { useRecordGestures } from './hooks/useRecordGestures';
+import { Platter } from './Platter.tsx';
+import { Record } from './record/Record.tsx';
+import { useRecordGestures } from './record/useRecordGestures.ts';
+import { useDisplay } from './useDisplay.ts';
 
-export default function App() {
+export function App() {
   const display = useDisplay();
   const { recordRef, isPressed, handlers } = useRecordGestures(display);
 
