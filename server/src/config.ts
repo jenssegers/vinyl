@@ -19,7 +19,7 @@ const envSchema = z
     VINYL_LATITUDE: z.coerce.number().min(-90).max(90).optional(),
     VINYL_LONGITUDE: z.coerce.number().min(-180).max(180).optional(),
     VINYL_DAY_BRIGHTNESS: z.coerce.number().int().min(0).max(100).default(75),
-    VINYL_NIGHT_BRIGHTNESS: z.coerce.number().int().min(0).max(100).default(25),
+    VINYL_NIGHT_BRIGHTNESS: z.coerce.number().int().min(0).max(100).default(10),
     WAYLAND_DISPLAY: z.string().optional(),
     XDG_RUNTIME_DIR: z.string().default('/run/user/1000'),
   })

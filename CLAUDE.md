@@ -60,6 +60,6 @@ Scopes: `user-read-currently-playing`, `user-read-playback-state`, `user-modify-
 | `VINYL_LATITUDE`         | `50.94` (Bavegem, Belgium)            | Location for sunset and sunrise, with `VINYL_LONGITUDE`                                                                |
 | `VINYL_LONGITUDE`        | `3.87` (Bavegem, Belgium)             | See `VINYL_LATITUDE`                                                                                                   |
 | `VINYL_DAY_BRIGHTNESS`   | `75`                                  | Backlight percent while the sun is up                                                                                  |
-| `VINYL_NIGHT_BRIGHTNESS` | `25`                                  | Backlight percent after sunset                                                                                         |
+| `VINYL_NIGHT_BRIGHTNESS` | `10`                                  | Backlight percent after sunset                                                                                         |
 | `VINYL_TOKENS_PATH`      | `~/.config/vinyl/tokens.json`         | Token storage                                                                                                          |
 | `VINYL_ALLOWED_DEVICES`  | (unset = allow all)                   | Comma-separated case-insensitive substrings matched against Spotify device names or IDs. e.g. `arc` matches `Arc + 1`. |
