@@ -22,6 +22,14 @@ function describe(display: Display): string {
 export async function eventsRoute(app: FastifyInstance): Promise<void> {
   await app.register(fastifySSE);
 
+  // A stream never finishes by itself, and `app.close()` waits for every open request. Close the
+  // streams first, or a restart hangs until systemd kills the server after its stop timeout.
+  // The client reconnects once the server is back. https://fastify.dev/docs/latest/Reference/Hooks/#pre-close
+  const openStreams = new Set<() => void>();
+  app.addHook('preClose', async () => {
+    for (const close of openStreams) close();
+  });
+
   app.get('/events', { sse: 'only' }, async (_request, reply) => {
     // The stream outlives this handler, until the client disconnects.
     reply.sse.keepAlive();
@@ -30,10 +38,15 @@ export async function eventsRoute(app: FastifyInstance): Promise<void> {
       log.info(describe(display));
       reply.sse.send({ data: display }).catch((error: unknown) => log.warn(error, 'send failed'));
     };
+    const close = (): void => reply.sse.close();
 
     // Send the current state right away, so the client renders without waiting for a change.
     send(poller.getState());
     poller.on('change', send);
-    reply.sse.onClose(() => poller.off('change', send));
+    openStreams.add(close);
+    reply.sse.onClose(() => {
+      poller.off('change', send);
+      openStreams.delete(close);
+    });
   });
 }
