@@ -8,8 +8,9 @@ const log = consola.withTag('sse');
 
 function describe(display: Display): string {
   switch (display.kind) {
+    case 'clock':
     case 'off':
-      return 'off';
+      return display.kind;
     case 'error':
       return `error: ${display.message}`;
     default:

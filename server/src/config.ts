@@ -13,6 +13,7 @@ const envSchema = z
     SPOTIFY_SETUP_PORT: z.coerce.number().int().positive().default(3001),
     SPOTIFY_REDIRECT_URI: z.url().optional(),
     VINYL_PAUSE_TO_OFF_MS: z.coerce.number().int().nonnegative().default(10_000),
+    VINYL_IDLE_CLOCK: z.stringbool().default(false),
     VINYL_FAKE_SCREEN: z.stringbool().default(false),
     VINYL_TOKENS_PATH: z.string().optional(),
     VINYL_ALLOWED_DEVICES: z.string().optional(),
@@ -41,6 +42,7 @@ const envSchema = z
     redirectUri:
       env.SPOTIFY_REDIRECT_URI ?? `http://127.0.0.1:${env.SPOTIFY_SETUP_PORT}/auth/callback`,
     pauseToOffMs: env.VINYL_PAUSE_TO_OFF_MS,
+    idleClock: env.VINYL_IDLE_CLOCK,
     fakeScreen: env.VINYL_FAKE_SCREEN || process.platform !== 'linux',
     tokensPath: env.VINYL_TOKENS_PATH ?? path.join(os.homedir(), '.config', 'vinyl', 'tokens.json'),
     allowedDevices: (env.VINYL_ALLOWED_DEVICES ?? '')

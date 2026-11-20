@@ -8,6 +8,7 @@ export default defineConfig({
       SPOTIFY_CLIENT_ID: 'test-client-id',
       VINYL_ALLOWED_DEVICES: 'kitchen',
       VINYL_PAUSE_TO_OFF_MS: '10000',
+      VINYL_IDLE_CLOCK: '1',
       VINYL_FAKE_SCREEN: '1',
       // London, for sunset and sunrise.
       VINYL_LATITUDE: '51.5',

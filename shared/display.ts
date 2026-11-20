@@ -16,6 +16,7 @@ export type Track = z.infer<typeof trackSchema>;
 export const displaySchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('playing'), track: trackSchema }),
   z.object({ kind: z.literal('paused'), track: trackSchema }),
+  z.object({ kind: z.literal('clock') }),
   z.object({ kind: z.literal('off') }),
   z.object({ kind: z.literal('error'), message: z.string() }),
 ]);

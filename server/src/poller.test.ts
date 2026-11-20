@@ -24,10 +24,18 @@ const phone = { id: 'device-2', name: 'Phone', type: 'Smartphone' };
 const playing: Playback = { isPlaying: true, track, device: kitchen };
 const paused: Playback = { isPlaying: false, track, device: kitchen };
 
+// The test environment enables the idle clock and is in London, where the sun sets at 15:53 UTC
+// on 21 December. Tests run at night unless they set a daytime.
+const NIGHT = new Date('2026-12-21T00:00:00Z');
+const NOON = new Date('2026-12-21T12:00:00Z');
+const BEFORE_SUNSET = new Date('2026-12-21T15:45:00Z');
+const AFTER_SUNSET_MS = 15 * 60_000;
+
 let poller: Poller;
 
 beforeEach(() => {
   vi.useFakeTimers();
+  vi.setSystemTime(NIGHT);
   vi.mocked(getPlayback).mockReset();
   vi.mocked(setScreen).mockClear();
   poller = new Poller();
@@ -84,6 +92,43 @@ describe('Poller', () => {
 
     expect(poller.getState()).toEqual(display);
     expect(setScreen).toHaveBeenLastCalledWith(screen);
+  });
+
+  it.each<{ name: string; responses: (Playback | null)[] }>([
+    { name: 'nothing active', responses: [null] },
+    { name: 'playback that stops', responses: [playing, null] },
+    { name: 'a paused track while idle', responses: [null, paused] },
+    { name: 'a device that is not allowed', responses: [{ ...playing, device: phone }] },
+  ])('shows the clock by day for $name', async ({ responses }) => {
+    vi.setSystemTime(NOON);
+    await pollEach(responses);
+
+    expect(poller.getState()).toEqual({ kind: 'clock' });
+    expect(setScreen).toHaveBeenLastCalledWith('on');
+  });
+
+  it('shows the clock by day once paused for the pause timeout', async () => {
+    vi.setSystemTime(NOON);
+    vi.mocked(getPlayback).mockResolvedValueOnce(playing).mockResolvedValue(paused);
+    poller.start();
+
+    await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS + 12_000);
+    expect(poller.getState()).toEqual({ kind: 'clock' });
+  });
+
+  it.each<{ name: string; response: Playback | null }>([
+    { name: 'nothing active', response: null },
+    { name: 'a paused track', response: paused },
+  ])('turns the clock off at sunset with $name', async ({ response }) => {
+    vi.setSystemTime(BEFORE_SUNSET);
+    vi.mocked(getPlayback).mockResolvedValue(response);
+    poller.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(poller.getState()).toEqual({ kind: 'clock' });
+
+    await vi.advanceTimersByTimeAsync(AFTER_SUNSET_MS);
+    expect(poller.getState()).toEqual({ kind: 'off' });
+    expect(setScreen).toHaveBeenLastCalledWith('off');
   });
 
   it('turns off once paused for the pause timeout', async () => {

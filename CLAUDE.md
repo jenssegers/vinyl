@@ -34,11 +34,13 @@ The rotation is a Web Animations API animation rather than a CSS keyframe, becau
 
 ## Display state machine
 
-Four states that mirror the Spotify response directly:
+Five states that mirror the Spotify response directly:
 
 - `playing`: screen on, record spins
-- `paused`: screen on, record frozen with the current track. Transitions to `off` after `VINYL_PAUSE_TO_OFF_MS` (default 10s), checked on each poll, so up to one poll interval late
-- `off`: screen blanked via wlr-randr (Spotify 204, non-allowed device, or pause timeout)
+- `paused`: screen on, record frozen with the current track. Goes idle after `VINYL_PAUSE_TO_OFF_MS` (default 10s), checked on each poll, so up to one poll interval late
+- Idle (Spotify 204, non-allowed device, or pause timeout) is one of two states, re-checked on each poll so it follows sunrise and sunset:
+  - `clock`: screen on, ClockClock-style clock. Only with `VINYL_IDLE_CLOCK=1` and while the sun is above the horizon
+  - `off`: screen blanked via wlr-randr
 - `error`: screen on, empty Beogram-style platter with the error message (3+ consecutive Spotify failures). Polling backs off exponentially up to 60s while in this state.
 
 ## Spotify auth
@@ -56,6 +58,7 @@ Scopes: `user-read-currently-playing`, `user-read-playback-state`, `user-modify-
 | `SPOTIFY_SETUP_PORT`     | `3001`                                | Port for the one-time OAuth callback server (must not equal `PORT`)                                                    |
 | `SPOTIFY_REDIRECT_URI`   | `http://127.0.0.1:3001/auth/callback` | Must match Spotify app dashboard                                                                                       |
 | `VINYL_PAUSE_TO_OFF_MS`  | `10000`                               | Pause-to-screen-off delay (ms)                                                                                         |
+| `VINYL_IDLE_CLOCK`       | `0`                                   | Set `1` to show the clock instead of turning the screen off when idle, only between sunrise and sunset                 |
 | `VINYL_FAKE_SCREEN`      | auto                                  | Set `1` to stub wlr-randr and the backlight                                                                            |
 | `VINYL_LATITUDE`         | `50.94` (Bavegem, Belgium)            | Location for sunset and sunrise, with `VINYL_LONGITUDE`                                                                |
 | `VINYL_LONGITUDE`        | `3.87` (Bavegem, Belgium)             | See `VINYL_LATITUDE`                                                                                                   |

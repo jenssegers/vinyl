@@ -1,3 +1,4 @@
+import { Clock } from './clock/Clock.tsx';
 import { Platter } from './Platter.tsx';
 import { Record } from './record/Record.tsx';
 import { useRecordGestures } from './record/useRecordGestures.ts';
@@ -8,6 +9,14 @@ export function App() {
   const { recordRef, isPressed, handlers } = useRecordGestures(display);
 
   if (display.kind === 'off') return null;
+
+  if (display.kind === 'clock') {
+    return (
+      <div className="flex items-center justify-center w-screen h-screen">
+        <Clock />
+      </div>
+    );
+  }
 
   return (
     <div

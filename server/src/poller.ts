@@ -1,5 +1,6 @@
 import EventEmitter from 'node:events';
 import { consola } from 'consola';
+import { getPosition } from 'suncalc';
 import type { Display, Track } from '../../shared/display.ts';
 import { config } from './config.ts';
 import { setScreen } from './screen.ts';
@@ -14,6 +15,9 @@ const POLL_AFTER_COMMAND_MS = 400;
 
 /** Show the error on screen after this many failures in a row. */
 const ERROR_THRESHOLD = 3;
+
+/** The idle clock shows while the sun is above the horizon, so the screen goes dark at sunset. */
+const IDLE_CLOCK_MIN_SUN_ALTITUDE_DEGREES = 0;
 
 const log = consola.withTag('poller');
 
@@ -85,7 +89,7 @@ export class Poller extends EventEmitter<{ change: [Display] }> {
   private show(playback: Playback | null): void {
     this.logDevice(playback?.device ?? null);
 
-    if (!playback || !isAllowedDevice(playback.device)) this.showOff();
+    if (!playback || !isAllowedDevice(playback.device)) this.showIdle();
     else if (playback.isPlaying) this.showPlaying(playback.track);
     else this.showPaused(playback.track);
   }
@@ -122,14 +126,18 @@ export class Poller extends EventEmitter<{ change: [Display] }> {
   }
 
   private showPaused(track: Track): void {
-    // Don't wake a blank screen just because a paused track sits in Spotify's player.
-    if (this.display.kind === 'off') return;
+    // A paused track that sits in Spotify's player while the display is idle doesn't bring the
+    // record back. It still counts as idle, so the clock follows sunrise and sunset.
+    if (this.display.kind === 'off' || this.display.kind === 'clock') {
+      this.showIdle();
+      return;
+    }
 
-    // A pause keeps the screen on for a while, counted from when playback first paused.
+    // A pause keeps the record on screen for a while, counted from when playback first paused.
     if (this.display.kind !== 'paused') {
       this.pausedAt = Date.now();
     } else if (Date.now() - this.pausedAt >= config.pauseToOffMs) {
-      this.showOff();
+      this.showIdle();
       return;
     } else if (this.display.track.id === track.id) {
       return;
@@ -137,6 +145,19 @@ export class Poller extends EventEmitter<{ change: [Display] }> {
 
     setScreen('on');
     this.update({ kind: 'paused', track });
+  }
+
+  /** Nothing to show: the clock by day when enabled, otherwise a blank screen. */
+  private showIdle(): void {
+    if (config.idleClock && isDaytime(new Date())) this.showClock();
+    else this.showOff();
+  }
+
+  private showClock(): void {
+    if (this.display.kind === 'clock') return;
+
+    setScreen('on');
+    this.update({ kind: 'clock' });
   }
 
   private showOff(): void {
@@ -168,6 +189,12 @@ function isAllowedDevice(device: Device | null): boolean {
   const name = device.name.toLowerCase();
   const id = device.id?.toLowerCase();
   return config.allowedDevices.some((allowed) => name.includes(allowed) || id?.includes(allowed));
+}
+
+function isDaytime(date: Date): boolean {
+  const { latitude, longitude } = config.location;
+  const { altitude } = getPosition(date, latitude, longitude);
+  return altitude > IDLE_CLOCK_MIN_SUN_ALTITUDE_DEGREES;
 }
 
 /** The message on the error platter: short enough to fit the arc. */
