@@ -7,6 +7,7 @@ Vinyl is a Spotify "now playing" display that runs as a kiosk on a Raspberry Pi.
 - **Pi OS Trixie** (Wayland, labwc compositor)
 - **Display**: [Waveshare 7" 1080x1080 round HDMI](https://docs.waveshare.com/7inch_1080x1080_LCD): `HDMI-A-1` in wlr-randr
 - **Screen control**: `wlr-randr --output HDMI-A-1 --on/--off`
+  - The panel is mounted upside down: `--on` also passes `--transform 180`, because a disabled output reports no transform and would come back unrotated. Touch is flipped to match with a libinput calibration matrix in `pi/rc.xml`; change both together
   - Must set `WAYLAND_DISPLAY=wayland-1` and `XDG_RUNTIME_DIR=/run/user/1000` when invoking from systemd (outside the desktop session)
   - On non-Linux or with `VINYL_FAKE_SCREEN=1`, `screen.ts` logs instead of shelling out
 - **Backlight**: no DDC/CI. The panel takes a USB HID report (USB `0712:000a`, the touch cable) that the server writes to its `/dev/hidrawN`. Waveshare's own script detaches the kernel driver instead, which would cut off touch. A udev rule from `install.sh` lets the `pi` user write it without root. Dimmed after sunset, from `VINYL_LATITUDE`/`VINYL_LONGITUDE`.

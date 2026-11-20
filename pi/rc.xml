@@ -7,4 +7,14 @@
       <action name="WarpCursor" x="-1" y="-1"/>
     </keybind>
   </keyboard>
+
+  <!-- The panel is mounted upside down and the server rotates the output 180° (screen.ts), so
+       flip touch to match: (x, y) becomes (1 - x, 1 - y). Touch isn't mapped to an output, so
+       labwc doesn't rotate it by itself.
+       https://wayland.freedesktop.org/libinput/doc/latest/absolute-axes.html#calibration -->
+  <libinput>
+    <device category="touch">
+      <calibrationMatrix>-1 0 1 0 -1 1</calibrationMatrix>
+    </device>
+  </libinput>
 </labwc_config>

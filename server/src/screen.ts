@@ -8,6 +8,13 @@ import { config } from './config.ts';
 /** The Waveshare panel's output name in `wlr-randr`. */
 const OUTPUT_NAME = 'HDMI-A-1';
 
+/**
+ * The panel is mounted upside down, so the output is rotated 180°. A disabled output reports no
+ * transform over wlr-output-management, so `wlr-randr --on` would bring it back unrotated: set it
+ * with every `--on`. Touch is flipped to match in labwc's `rc.xml`.
+ */
+const OUTPUT_TRANSFORM = '180';
+
 /** labwc's usual socket, for when no socket can be found yet. */
 const DEFAULT_WAYLAND_DISPLAY = 'wayland-1';
 
@@ -52,7 +59,8 @@ export function setScreen(state: ScreenState): void {
     WAYLAND_DISPLAY: waylandDisplay,
     XDG_RUNTIME_DIR: config.xdgRuntimeDir,
   };
-  exec('wlr-randr', ['--output', OUTPUT_NAME, state === 'on' ? '--on' : '--off'], { env })
+  const args = state === 'on' ? ['--on', '--transform', OUTPUT_TRANSFORM] : ['--off'];
+  exec('wlr-randr', ['--output', OUTPUT_NAME, ...args], { env })
     .then(() => {
       lastState = state;
       log.success(`${state} ok`);
