@@ -3,9 +3,9 @@ import { setBacklight } from './backlight.ts';
 import { config } from './config.ts';
 
 /**
- * Re-send the brightness this often. Small steps keep the twilight fade smooth (about 0.4% per
- * step over a 40-minute fade from 75% to 10%), and resending restores the level if the panel
- * resets it (a USB replug or power cycle).
+ * Re-send the brightness this often, so the twilight fade takes each 1% step as soon as it's due
+ * (from 25% to 10% over 40 minutes, a step every 2 to 3 minutes). Resending also restores the
+ * level if the panel resets it (a USB replug or power cycle).
  */
 const BRIGHTNESS_INTERVAL_MS = 15_000;
 
