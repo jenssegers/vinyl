@@ -1,6 +1,5 @@
 import EventEmitter from 'node:events';
 import { consola } from 'consola';
-import { getPosition } from 'suncalc';
 import type { Display, Track } from '../../shared/display.ts';
 import { config } from './config.ts';
 import { setScreen } from './screen.ts';
@@ -16,9 +15,6 @@ const POLL_AFTER_COMMAND_MS = 400;
 /** Show the error on screen after this many failures in a row. */
 const ERROR_THRESHOLD = 3;
 
-/** The idle clock shows while the sun is above the horizon, so the screen goes dark at sunset. */
-const IDLE_CLOCK_MIN_SUN_ALTITUDE_DEGREES = 0;
-
 const log = consola.withTag('poller');
 
 /** Polls Spotify and turns what it reports into the `Display`, switching the screen to match. */
@@ -30,6 +26,7 @@ export class Poller extends EventEmitter<{ change: [Display] }> {
   private pollRequested = false;
   private consecutiveFailures = 0;
   private pausedAt = 0;
+  private clockUntil = 0;
   private lastLoggedDevice: string | null | undefined = undefined;
 
   start(): void {
@@ -48,6 +45,14 @@ export class Poller extends EventEmitter<{ change: [Display] }> {
 
   getState(): Display {
     return this.display;
+  }
+
+  /** A touch on the dark screen shows the clock for a while; another touch keeps it up longer. */
+  wake(): void {
+    if (this.display.kind !== 'off' && this.display.kind !== 'clock') return;
+
+    this.clockUntil = Date.now() + config.clockToOffMs;
+    this.showClock();
   }
 
   refreshSoon(): void {
@@ -127,7 +132,7 @@ export class Poller extends EventEmitter<{ change: [Display] }> {
 
   private showPaused(track: Track): void {
     // A paused track that sits in Spotify's player while the display is idle doesn't bring the
-    // record back. It still counts as idle, so the clock follows sunrise and sunset.
+    // record back. It still counts as idle, so a clock times out as usual.
     if (this.display.kind === 'off' || this.display.kind === 'clock') {
       this.showIdle();
       return;
@@ -147,9 +152,12 @@ export class Poller extends EventEmitter<{ change: [Display] }> {
     this.update({ kind: 'paused', track });
   }
 
-  /** Nothing to show: the clock by day when enabled, otherwise a blank screen. */
+  /**
+   * Nothing to show: the clock while a touch keeps it up, otherwise a blank screen. Checked on
+   * each poll, so the clock goes off up to one poll interval late.
+   */
   private showIdle(): void {
-    if (config.idleClock && isDaytime(new Date())) this.showClock();
+    if (Date.now() < this.clockUntil) this.showClock();
     else this.showOff();
   }
 
@@ -189,12 +197,6 @@ function isAllowedDevice(device: Device | null): boolean {
   const name = device.name.toLowerCase();
   const id = device.id?.toLowerCase();
   return config.allowedDevices.some((allowed) => name.includes(allowed) || id?.includes(allowed));
-}
-
-function isDaytime(date: Date): boolean {
-  const { latitude, longitude } = config.location;
-  const { altitude } = getPosition(date, latitude, longitude);
-  return altitude > IDLE_CLOCK_MIN_SUN_ALTITUDE_DEGREES;
 }
 
 /** The message on the error platter: short enough to fit the arc. */

@@ -31,6 +31,8 @@ Zoom is disabled in three places: the viewport meta tag, `touch-action: none` in
 
 `useRecordGestures`: press pauses, dragging turns the record under the finger, and release resumes unless it was a tap on a playing record (under 400ms and under 4° of turn). A Spotify round trip takes ~300ms, so the hook renders an optimistic playing state until the poller reports the same thing (or 5s pass, or the command fails).
 
+With the screen off, labwc has no output to deliver touches to, so the server reads the panel's evdev device itself (`pi` is in the `input` group) to wake the clock. Reading doesn't grab the device, so the page still gets every touch.
+
 The rotation is a Web Animations API animation rather than a CSS keyframe, because dragging scrubs `currentTime` to follow the finger and playback has to resume from that angle. `SPIN_MS` is therefore both the duration of one turn and the scale factor between angle and time.
 
 ## Display state machine
@@ -39,9 +41,9 @@ Five states that mirror the Spotify response directly:
 
 - `playing`: screen on, record spins
 - `paused`: screen on, record frozen with the current track. Goes idle after `VINYL_PAUSE_TO_OFF_MS` (default 10s), checked on each poll, so up to one poll interval late
-- Idle (Spotify 204, non-allowed device, or pause timeout) is one of two states, re-checked on each poll so it follows sunrise and sunset:
-  - `clock`: screen on, ClockClock-style clock. Only with `VINYL_IDLE_CLOCK=1` and while the sun is above the horizon
+- Idle (Spotify 204, non-allowed device, or pause timeout) is one of two states, re-checked on each poll:
   - `off`: screen blanked via wlr-randr
+  - `clock`: screen on, ClockClock-style clock. A touch while idle shows it for `VINYL_CLOCK_TO_OFF_MS` (default 5 min) from the last touch
 - `error`: screen on, empty Beogram-style platter with the error message (3+ consecutive Spotify failures). Polling backs off exponentially up to 60s while in this state.
 
 ## Spotify auth
@@ -59,11 +61,12 @@ Scopes: `user-read-currently-playing`, `user-read-playback-state`, `user-modify-
 | `SPOTIFY_SETUP_PORT`     | `3001`                                | Port for the one-time OAuth callback server (must not equal `PORT`)                                                    |
 | `SPOTIFY_REDIRECT_URI`   | `http://127.0.0.1:3001/auth/callback` | Must match Spotify app dashboard                                                                                       |
 | `VINYL_PAUSE_TO_OFF_MS`  | `10000`                               | Pause-to-screen-off delay (ms)                                                                                         |
-| `VINYL_IDLE_CLOCK`       | `0`                                   | Set `1` to show the clock instead of turning the screen off when idle, only between sunrise and sunset                 |
-| `VINYL_FAKE_SCREEN`      | auto                                  | Set `1` to stub wlr-randr and the backlight                                                                            |
+| `VINYL_CLOCK_TO_OFF_MS`  | `300000`                              | How long the clock stays up after the last touch (ms)                                                                  |
+| `VINYL_FAKE_SCREEN`      | auto                                  | Set `1` to stub wlr-randr, the backlight and the touch reader                                                          |
 | `VINYL_LATITUDE`         | `50.94` (Bavegem, Belgium)            | Location for sunset and sunrise, with `VINYL_LONGITUDE`                                                                |
 | `VINYL_LONGITUDE`        | `3.87` (Bavegem, Belgium)             | See `VINYL_LATITUDE`                                                                                                   |
 | `VINYL_DAY_BRIGHTNESS`   | `25`                                  | Backlight percent while the sun is up                                                                                  |
 | `VINYL_NIGHT_BRIGHTNESS` | `10`                                  | Backlight percent after sunset                                                                                         |
+| `VINYL_CLOCK_BRIGHTNESS` | `VINYL_NIGHT_BRIGHTNESS`              | Backlight percent while the clock shows                                                                                |
 | `VINYL_TOKENS_PATH`      | `~/.config/vinyl/tokens.json`         | Token storage                                                                                                          |
 | `VINYL_ALLOWED_DEVICES`  | (unset = allow all)                   | Comma-separated case-insensitive substrings matched against Spotify device names or IDs. e.g. `arc` matches `Arc + 1`. |

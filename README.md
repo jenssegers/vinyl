@@ -1,6 +1,6 @@
 # vinyl
 
-Spinning vinyl record display that mirrors whatever is playing on Spotify. Runs on a Raspberry Pi connected to a [Waveshare 7" 1080x1080 round HDMI display](https://www.waveshare.com/7inch-1080x1080-lcd.htm). Screen turns off automatically when nothing is playing, or, with `VINYL_IDLE_CLOCK=1`, shows a kinetic clock in the style of ClockClock until sunset.
+Spinning vinyl record display that mirrors whatever is playing on Spotify. Runs on a Raspberry Pi connected to a [Waveshare 7" 1080x1080 round HDMI display](https://www.waveshare.com/7inch-1080x1080-lcd.htm). Screen turns off automatically when nothing is playing. Touching the dark screen shows a kinetic clock in the style of ClockClock for 5 minutes.
 
 ## Touch
 
@@ -42,7 +42,7 @@ pnpm typecheck          # tsc; Node strips types without checking them
 pnpm lint               # Biome
 ```
 
-Set `VINYL_FAKE_SCREEN=1` in `.env` to stub out `wlr-randr` and the backlight (useful on non-Pi machines; it is on by default off Linux).
+Set `VINYL_FAKE_SCREEN=1` in `.env` to stub out `wlr-randr`, the backlight and the touch reader (useful on non-Pi machines; it is on by default off Linux).
 
 ## Pi deployment
 

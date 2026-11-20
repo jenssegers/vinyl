@@ -1,6 +1,8 @@
 import { getPosition } from 'suncalc';
+import type { Display } from '../../shared/display.ts';
 import { setBacklight } from './backlight.ts';
 import { config } from './config.ts';
+import type { Poller } from './poller.ts';
 
 /**
  * Re-send the brightness this often, so the twilight fade takes each 1% step as soon as it's due
@@ -33,11 +35,23 @@ export function brightnessAt(date: Date): number {
   );
 }
 
-/** Keeps the panel at the brightness for the time of day. Returns a function that stops it. */
-export function startBrightnessSchedule(): () => void {
-  const apply = () => setBacklight(brightnessAt(new Date()));
+/** The clock runs at its own level, to save power and backlight wear; the rest follows the sun. */
+export function brightnessFor(display: Display, date: Date): number {
+  if (display.kind === 'clock') return config.clockBrightness;
+
+  return brightnessAt(date);
+}
+
+/** Keeps the panel at the brightness for what it shows and the time of day. Returns a function that stops it. */
+export function startBrightnessSchedule(poller: Poller): () => void {
+  const apply = () => setBacklight(brightnessFor(poller.getState(), new Date()));
 
   apply();
   const timer = setInterval(apply, BRIGHTNESS_INTERVAL_MS);
-  return () => clearInterval(timer);
+  // Change level with the display, rather than up to an interval later.
+  poller.on('change', apply);
+  return () => {
+    clearInterval(timer);
+    poller.off('change', apply);
+  };
 }

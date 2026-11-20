@@ -7,6 +7,7 @@ import { playbackRoute } from './playback-route.ts';
 import { poller } from './poller.ts';
 import { loadTokens } from './spotify/tokens.ts';
 import { staticRoute } from './static-route.ts';
+import { watchTouches } from './touch.ts';
 
 process.on('uncaughtException', (error) => {
   consola.error(error, 'uncaught exception');
@@ -23,9 +24,10 @@ process.on('unhandledRejection', (reason) => {
 const log = consola.withTag('vinyl');
 const app = Fastify({ logger: { level: 'warn' } });
 
-if (config.fakeScreen) log.warn('fake screen mode, wlr-randr and backlight disabled');
+if (config.fakeScreen) log.warn('fake screen mode, wlr-randr, backlight and touch disabled');
 
-const stopBrightnessSchedule = startBrightnessSchedule();
+const stopBrightnessSchedule = startBrightnessSchedule(poller);
+const stopWatchingTouches = watchTouches(() => poller.wake());
 
 await app.register(eventsRoute);
 await app.register(playbackRoute);
@@ -44,6 +46,7 @@ if (loadTokens()) {
 const shutdown = async () => {
   poller.stop();
   stopBrightnessSchedule();
+  stopWatchingTouches();
   await app.close().catch((error: unknown) => log.error(error, 'error during shutdown'));
   process.exit(0);
 };

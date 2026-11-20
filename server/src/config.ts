@@ -13,7 +13,7 @@ const envSchema = z
     SPOTIFY_SETUP_PORT: z.coerce.number().int().positive().default(3001),
     SPOTIFY_REDIRECT_URI: z.url().optional(),
     VINYL_PAUSE_TO_OFF_MS: z.coerce.number().int().nonnegative().default(10_000),
-    VINYL_IDLE_CLOCK: z.stringbool().default(false),
+    VINYL_CLOCK_TO_OFF_MS: z.coerce.number().int().positive().default(300_000),
     VINYL_FAKE_SCREEN: z.stringbool().default(false),
     VINYL_TOKENS_PATH: z.string().optional(),
     VINYL_ALLOWED_DEVICES: z.string().optional(),
@@ -21,6 +21,7 @@ const envSchema = z
     VINYL_LONGITUDE: z.coerce.number().min(-180).max(180).optional(),
     VINYL_DAY_BRIGHTNESS: z.coerce.number().int().min(0).max(100).default(25),
     VINYL_NIGHT_BRIGHTNESS: z.coerce.number().int().min(0).max(100).default(10),
+    VINYL_CLOCK_BRIGHTNESS: z.coerce.number().int().min(0).max(100).optional(),
     WAYLAND_DISPLAY: z.string().optional(),
     XDG_RUNTIME_DIR: z.string().default('/run/user/1000'),
   })
@@ -42,7 +43,7 @@ const envSchema = z
     redirectUri:
       env.SPOTIFY_REDIRECT_URI ?? `http://127.0.0.1:${env.SPOTIFY_SETUP_PORT}/auth/callback`,
     pauseToOffMs: env.VINYL_PAUSE_TO_OFF_MS,
-    idleClock: env.VINYL_IDLE_CLOCK,
+    clockToOffMs: env.VINYL_CLOCK_TO_OFF_MS,
     fakeScreen: env.VINYL_FAKE_SCREEN || process.platform !== 'linux',
     tokensPath: env.VINYL_TOKENS_PATH ?? path.join(os.homedir(), '.config', 'vinyl', 'tokens.json'),
     allowedDevices: (env.VINYL_ALLOWED_DEVICES ?? '')
@@ -55,6 +56,7 @@ const envSchema = z
     },
     dayBrightness: env.VINYL_DAY_BRIGHTNESS,
     nightBrightness: env.VINYL_NIGHT_BRIGHTNESS,
+    clockBrightness: env.VINYL_CLOCK_BRIGHTNESS ?? env.VINYL_NIGHT_BRIGHTNESS,
     waylandDisplay: env.WAYLAND_DISPLAY,
     xdgRuntimeDir: env.XDG_RUNTIME_DIR,
   }));

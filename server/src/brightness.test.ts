@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { brightnessAt } from './brightness.ts';
+import type { Display } from '../../shared/display.ts';
+import { brightnessAt, brightnessFor } from './brightness.ts';
 
 const MINUTE_MS = 60_000;
 
@@ -28,5 +29,19 @@ describe('brightnessAt', () => {
     expect(levels.every((level, i) => i === 0 || level <= levels[i - 1])).toBe(true);
     // A real fade passes through many levels rather than jumping.
     expect(new Set(levels).size).toBeGreaterThan(30);
+  });
+});
+
+// The test environment leaves the clock level unset, so it falls back to the night level.
+describe('brightnessFor', () => {
+  const noon = new Date('2026-12-21T12:00:00Z');
+  const track = { id: 'track-1', name: 'So What', artist: 'Miles Davis', albumArt: '' };
+
+  it.each<{ name: string; display: Display; brightness: number }>([
+    { name: 'the clock, at the night level', display: { kind: 'clock' }, brightness: 25 },
+    { name: 'a playing track, by the sun', display: { kind: 'playing', track }, brightness: 75 },
+    { name: 'an error, by the sun', display: { kind: 'error', message: 'x' }, brightness: 75 },
+  ])('$name: $brightness% at noon', ({ display, brightness }) => {
+    expect(brightnessFor(display, noon)).toBe(brightness);
   });
 });
